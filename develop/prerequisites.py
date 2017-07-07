@@ -1,28 +1,33 @@
 # -*- coding: utf-8 -*-
 
 from invoke import task
-from develop import execution
 from develop import path
 from develop import checks
-from utilities.globals import mem
+# from utilities.globals import mem
 from utilities.logs import get_logger
 
 log = get_logger(__name__)
 
-# hack for check as info
-mem.action = 'check'
+# # hack for check logs as info
+# mem.action = 'check'
 
 ######################
 # checks
+python_cmd = 'python3'
 pip_cmd = 'pip3'
-setup_file = 'setup.py'
 twine_cmd = 'twine'
+setup_file = 'setup.py'
 rc_file = '.pypirc'
 
 pip_check = {
     'type': 'program',
-    'func': lambda: execution.get_version(pip_cmd, get_result=True),
+    # 'func': lambda: execution.get_version(pip_cmd, get_result=True),
     'name': pip_cmd,
+}
+
+python_check = {
+    'type': 'program',
+    'name': python_cmd
 }
 
 setup_check = {
@@ -33,7 +38,6 @@ setup_check = {
 
 twine_check = {
     'type': 'program',
-    'func': lambda: execution.get_version(twine_cmd, get_result=True),
     'name': twine_cmd,
 }
 
@@ -48,6 +52,7 @@ twinerc_check = {
 def install(ctx):
     """ Check prerequisites for installing the package """
     checks.all([
+        python_check,
         setup_check,
         pip_check
     ])
@@ -58,6 +63,7 @@ def release(ctx):
     """ Do necessary things already exist? """
 
     checklist = [
+        python_check,
         setup_check,
         twine_check,
         twinerc_check

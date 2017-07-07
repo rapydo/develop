@@ -22,16 +22,17 @@ def not_found(error, check_path=False):
     exit()
 
 
-def check_file(obj, objname):
-    if obj:
+def check_file(func, objname):
+    if func():
         checked('File: %s' % objname)
     else:
         not_found('Missing file "%s"' % objname, check_path=True)
 
 
-def check_program(obj, objname):
-    version = execution.parse_version(obj, objname)
+def check_program(objname):
+    obj = execution.get_version(objname, get_result=True)
     if obj.ok:
+        version = execution.parse_version(obj, objname)
         checked('Program: %s [v%s]' % (objname, version))
     else:
         not_found('Missing executable "%s"' % objname)
@@ -43,9 +44,8 @@ def all(checklist):
 
         optype = op.get('type')
         objname = op.get('name')
-        obj = op.get('func')()
 
         if optype == 'file':
-            check_file(obj, objname)
+            check_file(op.get('func'), objname)
         elif optype == 'program':
-            check_program(obj, objname)
+            check_program(objname)

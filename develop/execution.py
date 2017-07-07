@@ -49,7 +49,7 @@ def parse_version(result, original_name, unknown='Unknown'):
     if not match:
         match = pattern_two.search(cmd_out)
     if match:
-        if original_name.startswith(match.group(1)):
+        if original_name.lower().startswith(match.group(1).lower()):
             return match.group(2)
     return unknown
 
