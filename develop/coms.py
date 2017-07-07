@@ -38,5 +38,6 @@ def package_release(ctx):
 def package_install(ctx, editable=False):
     """ Install the package locally """
 
-    # cmd = 'pip3 install --upgrade --no-cache-dir --editable .'
+    cmd = 'pip3 install --upgrade --no-cache-dir --editable .'
+    # out = execution.command(cmd)
     pass
