@@ -12,9 +12,12 @@ setup(
         main_package
     ],
     install_requires=[
-        'rapydo-utils==0.5.0',
+        'rapydo-utils==0.4.7',
+        # FIXME: switch to 0.5 when everything is done
+        # 'rapydo-utils==0.5.0',
         'invoke==0.19.0',
-        'bonobo 0.4.3',
+        # TODO: add this if necessary
+        # 'bonobo==0.4.3',
     ],
     entry_points={
         'console_scripts': [

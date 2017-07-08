@@ -10,28 +10,21 @@ log = get_logger(__name__)
 def output(result, output_array=False, do_not_die=False):
 
     if result.ok:
-        output = result.stdout
-        if output_array:
-            output = output.splitlines()
-        else:
-            output = output.strip()
+        output = result.stdout.strip()
     else:
-        error = result.stderr
+        error = result.stderr.strip()
         if do_not_die:
-            return error.strip()
+            output = error
         else:
+
             log.exit(error)
 
+    if output_array:
+        output = output.splitlines()
+    else:
+        pass
+
     return output
-
-
-def command(cmdstring, output_array=True, get_result=False):
-
-    result = run(cmdstring, hide=True, warn=True)
-    if get_result:
-        return result
-
-    return output(result, output_array)
 
 
 def parse_version(result, original_name, unknown='Unknown'):
@@ -54,6 +47,18 @@ def parse_version(result, original_name, unknown='Unknown'):
     return unknown
 
 
+def command(cmdstring, output_array=False, get_result=False):
+    """
+    Execute a 'normal' command based on invoke runners
+    """
+
+    result = run(cmdstring, hide=True, warn=True)
+    if get_result:
+        return result
+
+    return output(result, output_array)
+
+
 def get_version(cmdstring, version_argument='--version', get_result=False):
 
     result = command(
@@ -65,3 +70,35 @@ def get_version(cmdstring, version_argument='--version', get_result=False):
         return result
     else:
         return parse_version(result, cmdstring)
+
+
+def grep_output(result, parse_list):
+
+    lines = output(result, output_array=True, do_not_die=True)
+    parsed = []
+    for line in lines:
+        for catch in parse_list:
+            if catch in line:
+                parsed.append(line.strip())
+
+    # If nothing catched, return all
+    if len(parsed) < 1:
+        parsed = lines
+    # Join what we recovered
+    return '\n'.join(parsed)
+
+
+def long_command(cmdstring, parse_strings=[]):
+    """
+    Refactor execution of a serious long command into execution
+    - warn user of a long task to wait
+    - parse output for a keyword (or regexp in the future)
+    """
+
+    log.warning("running 'long' command")
+    result = command(cmdstring, get_result=True)
+
+    if len(parse_strings) > 0:
+        return grep_output(result, parse_strings)
+    else:
+        return result
