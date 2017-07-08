@@ -1,23 +1,26 @@
 # -*- coding: utf-8 -*-
 
-"""
-
-TODO: evaluate BONOBO
-# graph = bonobo.Graph(extract, transform, load)
-
-"""
-
 from invoke import task
 from develop import execution
-from develop import prerequisites
+from develop.mytasks import prerequisites
 from utilities.logs import get_logger
 
 log = get_logger(__name__)
 
 
+@task(pre=[prerequisites.install])
+def install(ctx, editable=False):
+    """ Install on the local host package from the current folder """
+
+    cmd = 'pip3 install --upgrade --no-cache-dir --editable .'
+    log.debug(cmd)
+    # out = execution.command(cmd)
+    pass
+
+
 @task(pre=[prerequisites.release])
-def package_release(ctx):
-    """ Release the package in the current folder """
+def release(ctx):
+    """ Release on PyPi the package from the current folder """
 
     out = execution.command('echo hello world')
     log.pp(out)
@@ -32,12 +35,3 @@ def package_release(ctx):
     #   - push
 
     log.info("Completed")
-
-
-@task(pre=[prerequisites.install])
-def package_install(ctx, editable=False):
-    """ Install the package locally """
-
-    cmd = 'pip3 install --upgrade --no-cache-dir --editable .'
-    # out = execution.command(cmd)
-    pass
