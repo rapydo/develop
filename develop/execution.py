@@ -81,6 +81,8 @@ def grep_output(result, parse_list):
             if catch in line:
                 parsed.append(line.strip())
 
+    # TODO: check for errors?
+
     # If nothing catched, return all
     if len(parsed) < 1:
         parsed = lines

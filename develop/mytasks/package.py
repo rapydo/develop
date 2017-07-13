@@ -19,13 +19,17 @@ def install(ctx, editable=False):
             'Successfully',
         ]
     )
-    log.info("Output:\n%s" % output)
+    log.info("Completed w/ output:\n%s" % output)
 
 
 @task(pre=[prerequisites.release])
 def release(ctx):
     """ Release on PyPi the package from the current folder """
 
-    # out = exe.command('echo hello world')
-    # log.pp(out)
+    out = exe.command('echo hello world')
+    log.debug(show_release_output(out))
     log.warning("TODO")
+
+
+def show_release_output(raw):
+    return raw
