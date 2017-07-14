@@ -19,6 +19,6 @@ This is the index for the current documentation:
 
 | pypi | travis | coveralls |
 | --- | --- | --- |
-| [![PyPI version](https://badge.fury.io/py/rapydo-develop.svg)](https://badge.fury.io/py/rapydo-utils) | [![Build Status](https://travis-ci.org/rapydo/develop.svg)](https://travis-ci.org/rapydo/develop) | [![Coverage Status](https://coveralls.io/repos/github/rapydo/develop/badge.svg)](https://coveralls.io/github/rapydo/develop) |
+| [![PyPI version](https://badge.fury.io/py/rapydo-develop.svg)](https://badge.fury.io/py/rapydo-utils) | [![Build Status](https://travis-ci.org/rapydo/develop.svg)](https://travis-ci.org/rapydo/develop) | [![Coverage Status](https://coveralls.io/repos/github/rapydo/develop/badge.svg?branch=master)](https://coveralls.io/github/rapydo/develop?branch=master) |
 
 
