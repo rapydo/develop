@@ -2,11 +2,17 @@
 # Things to do
 
 
+## best practices
+
+- [x] release base
+- [x] short + long description rst (Only short)
+- [ ] template cookiecutter
+
+
 ## checks
 
-- [ ] long destriction rst and setuptools
 - [ ] internet connection available (from do to utils?)
-from rapydo.utils import checks
+from utilities import checks
 connected = checks.check_internet()
 if not connected:
     log.exit('Internet connection unavailable')
@@ -16,20 +22,11 @@ else:
 - [ ] Fix problems if check fails?
 
 
-## travis
-
-- [x] test travis autodeploy with pypi
-- [ ] squash noprefix
-- [ ] git pull request from cli
-- [ ] git cli tag and so auto-release
-- [ ] travis login && travis init
-
-
 ## more
 
+- [x] git tags = github releases
 - [ ] Yaml e py check ascii error
-- [ ] unittext mocking context
-- [ ] git tags = github releases
+- [ ] spinner + gauge = py-clui
 - [ ] remove 'make' for every packaging project
 - [ ] template cli w/ @cookiecutter
 - [ ] md posts @blog
@@ -41,14 +38,6 @@ else:
 - [ ] 2. git tag
 - [ ] 3. git add commit with message with bump version
 - [ ] 4. git push: activate travis build
-
-on travis:
-
-- [ ] 1. convert markdown to rst
-    + requires pandoc (ask if they want to install?)
-    + option to skip
-- [ ] 2. sdist to create package
-- [ ] 3. twine register/upload
 
 
 ```
@@ -64,3 +53,14 @@ development/
             links
 ```
 
+
+# Done
+
+
+## travis
+
+- [x] travis login && travis init
+- [x] test travis autodeploy with pypi
+- [x] squash noprefix
+- [x] git pull request from cli
+- [x] git cli tag and so auto-release

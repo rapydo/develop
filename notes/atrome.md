@@ -4,14 +4,12 @@
 
 ## todo
 
-- [ ] develop 0.1.0
-- [ ] controller 0.5.0
-- [ ] http 0.5.0
-- [ ] build-templates tag 0.5.0
+- [x] controller 0.5.0
+- [x] http 0.5.0
+- [ ] build-templates tag v0.5.0-beta
 - [ ] swarm things
 - [ ] PAW https://setapp.com/apps/paw
 - [ ] talk about a chatbot algo for develop
-- [ ] etoro and lendix?
 
 
 ## done
@@ -23,4 +21,5 @@
     + fix controller
     + quick_start: add production instructions
 - [x] mail
+- [x] develop 0.1.1
 

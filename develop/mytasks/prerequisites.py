@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from invoke import task
-from develop import path
+from utilities import path
 from develop import checks
 # from utilities.globals import mem
 from utilities.logs import get_logger
