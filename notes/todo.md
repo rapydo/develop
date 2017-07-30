@@ -1,16 +1,57 @@
 
 # Things to do
 
+set the root path with a `.developrc` file, then:
+
+```
+# tree
+development/
+    tools/
+        controller
+        utilities
+        restapi
+        build-templates @onlytags
+    projects/
+        core/
+            submodules
+                links
+        eudat/
+            submodules
+                links
+```
+
+
+## switch version
+
+- list tools:
+    + builds, controller, develop, http, utilities
+    + read from projects_defaults ?
+- list projects from dir:
+    + core, eudat, others 
+- dependencies:
+    + utils > develop > core > controller > build-templates > http
+
+- choose: project e.g. 'eudat' AND branch e.g. '0.5.3'
+- for each `tools`
+    - glob/pathlib on */__init__.py and change __version__.py
+        - use regexps and expressions
+    - change projects/eudat/project_configuration.yaml
+        - YAML path is repos: utils, backend and build-templates
+    - git branch -a
+        - if exists: git checkout $BRANCH
+        - else create: git checkout -b $BRANCH
+            + and push
+    - pip3 install editable/develop
+
 
 ## best practices
 
-- [x] release base
-- [x] short + long description rst (Only short)
 - [ ] template cookiecutter
 
 
 ## checks
 
+- [ ] Yes or No with invoke
 - [ ] internet connection available (from do to utils?)
 from utilities import checks
 connected = checks.check_internet()
@@ -18,7 +59,6 @@ if not connected:
     log.exit('Internet connection unavailable')
 else:
     log.checked("Internet connection available")
-- [ ] Yes or No with invoke
 - [ ] Fix problems if check fails?
 
 
@@ -40,27 +80,12 @@ else:
 - [ ] 4. git push: activate travis build
 
 
-```
-# tree
-development/
-    tools/
-        controller
-        utilities
-        restapi
-        build-templates @onlytags
-    eudat/
-        submodules
-            links
-```
-
-
 # Done
-
-
-## travis
 
 - [x] travis login && travis init
 - [x] test travis autodeploy with pypi
 - [x] squash noprefix
 - [x] git pull request from cli
 - [x] git cli tag and so auto-release
+- [x] release base
+- [x] short + long description rst (Only short)

@@ -3,7 +3,9 @@
 from invoke import Collection  # , Config
 from develop import __version__
 from develop.program import CLIProgram
-from develop.mytasks import package as package_operations
+from develop.mytasks import \
+    package as package_ops, \
+    release as release_ops
 
 
 # class DoConfig(Config):
@@ -14,5 +16,6 @@ from develop.mytasks import package as package_operations
 # Using namespaces for sub-sub commands
 ns = Collection()
 # ns.add_task()
-ns.add_collection(package_operations)
+ns.add_collection(package_ops)
+ns.add_collection(release_ops)
 program = CLIProgram(namespace=ns, version=__version__)
