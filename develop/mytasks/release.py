@@ -10,7 +10,7 @@ log = get_logger(__name__)
 
 # @task(pre=[prerequisites.install])
 @task
-def version(ctx, project='core', branch='master', push=False):
+def version(ctx, project='core', branch='master', push=False, tag=False):
     """ Change current release version on all tools """
 
     # TODO: make the config get a function in `config.py`
@@ -79,8 +79,36 @@ def version(ctx, project='core', branch='master', push=False):
                 res = newres.copy()
 
             if len(res) < 1:
+                from utilities import GITREPOS_TEAM
                 # it looks like this is not a python package
-                print("REQUIREMENTS!\n\n")
+                # would this be 'build'?
+
+                version_re = r'(' + GITREPOS_TEAM + r'/[^@]+@)([a-z0-9-.]+)'
+                pattern = re.compile(version_re)
+
+                # find and replace all requirements files
+                for req in x.glob('*/*requirements.txt'):
+
+                    # open
+                    with open(req) as fh:
+                        content = fh.read()
+
+                    # find
+                    matches = pattern.findall(content)
+                    if matches:
+                        newcontent = content[:]
+
+                        # replace only if necessary
+                        for match in matches:
+                            if match[1] != branch:
+                                old = match[0] + match[1]
+                                new = match[0] + branch
+                                newcontent = newcontent.replace(old, new)
+                                log.very_verbose('Fixed requirement: %s' % old)
+                        if newcontent != content:
+                            with open(req, 'w') as fw:
+                                fw.write(newcontent)
+                            log.info('Updated: %s' % req)
                 continue
             elif len(res) > 1:
 
@@ -96,7 +124,7 @@ def version(ctx, project='core', branch='master', push=False):
             else:
                 filepath = res.pop()
 
-            log.verbose("Searching version:\n%s" % filepath)
+            log.very_verbose("Searching version:\n%s" % filepath)
             with open(filepath) as fh:
                 content = fh.read()
 
@@ -121,10 +149,16 @@ def version(ctx, project='core', branch='master', push=False):
                     fw.write(new_content)
                 log.info('Overwritten python version: %s' % branch)
 
+            print("PYTHON REQUIREMENTS!")
+            print("PYTHON SETUP!")
+
             if push:
                 raise NotImplementedError("git push!")
 
-            # exit(1)
+            if tag:
+                raise NotImplementedError("git tag check or create and push!")
+
+            exit(1)
             # out of TOOL
 
         # out of CD
@@ -158,3 +192,5 @@ def version(ctx, project='core', branch='master', push=False):
         p = path.build(folder)
 
     print(project, p)
+
+    # project configuration regex replace
