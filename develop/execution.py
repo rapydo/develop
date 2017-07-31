@@ -13,10 +13,11 @@ def output(result, output_array=False, do_not_die=False):
         output = result.stdout.strip()
     else:
         error = result.stderr.strip()
+        if error == '':
+            error = result.stdout.strip()
         if do_not_die:
             output = error
         else:
-
             log.exit(error)
 
     if output_array:

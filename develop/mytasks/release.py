@@ -31,13 +31,17 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
     import re
     from utilities import path
     from utilities import helpers
+    from utilities import GITREPOS_TEAM
     toolposix = path.join(folder, 'tools')
 
-    # FIXME: to look for dir names in configuration
-    for toolpath in toolposix.iterdir():
+    # # FIXME: to look for dir names in configuration
+    # for toolpath in toolposix.iterdir():
+    #     toolname = helpers.last_dir(toolpath)
 
-        toolname = helpers.last_dir(toolpath)
+    for toolname in config.get('tools'):
+
         log.info('Tool: %s' % toolname)
+        toolpath = path.join(toolposix, toolname)
 
         with path.cd(toolpath):
 
@@ -90,7 +94,6 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
                 #######################################
                 # it looks like this is not a python package
                 # would this be 'build templates'?
-                from utilities import GITREPOS_TEAM
 
                 version_re = r'(' + GITREPOS_TEAM + r'/[^@]+@)([a-z0-9-.]+)'
                 pattern = re.compile(version_re)
@@ -192,17 +195,47 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
                     else:
                         log.verbose('Requirements already matching')
 
+            if toolname not in ['http']:
+
+                #######################################
+                # Python setup.py
+                naming_re = r"setup[^a-z]+name='([^\']+)'"
+                pattern = re.compile(naming_re)
+                setupfile = list(x.glob('*setup.py')).pop()
+                with open(setupfile) as fh:
+                    content = fh.read()
+                match = pattern.search(content)
+                if match:
+                    package_name = match.group(1).replace('_', '-')
+
+                #######################################
+                # install in development mode
+                infos = {}
+                data = exe.command('pip3 show %s' % package_name)
+                for info in data.split('\n'):
+                    key, value = info.split(': ')
+                    infos[key.lower()] = value
+
+                doinstall = True
+                if infos.get('location') == str(toolpath):
+                    if infos.get('version') == version:
+                        doinstall = False
+
+                if doinstall:
+                    exe.command(
+                        'pip3 install --upgrade --no-cache-dir --editable .')
+                    log.installed('installed %s==%s in develop mode'
+                                  % (package_name, version))
+            else:
+                log.info("Skipped installation")
+
             #######################################
-            # Python setup.py
-            # NOTE: not needed anymore; we use a python variable __version__
-
-            # TODO: install in development mode
-            raise NotImplementedError("install as editable!")
-            # pip3 install --upgrade --no-cache-dir --editable .
-            # DO this only if not already linked to egg. How to check??
-
             if push:
-                raise NotImplementedError("git push!")
+                if 'nothing to commit' not in exe.command('git status'):
+                    exe.command("git commit -a -m 'new version %s'" % branch)
+
+                gitout = exe.command('git push origin %s' % branch)
+                log.debug('pushed:\n%s' % gitout)
 
             if tag:
                 raise NotImplementedError("git tag check or create and push!")
