@@ -10,12 +10,13 @@ log = get_logger(__name__)
 
 # @task(pre=[prerequisites.install])
 @task
-def version(ctx, project='core', branch='master'):
+def version(ctx, project='core', branch='master', push=False):
     """ Change current release version on all tools """
 
     # TODO: make the config get a function in `config.py`
     # log.info(ctx.config)
-    folder = ctx.config.get('develop', {}).get('tools', {}).get('path')
+    config = ctx.config.get('develop', {})
+    folder = config.get('main-path')
     if folder is None:
         log.exit("Missing folder definition in ~/.invoke.yaml")
     else:
@@ -25,9 +26,10 @@ def version(ctx, project='core', branch='master'):
     import re
     from utilities import path
     from utilities import helpers
-    p = path.build(folder)
+    toolposix = path.join(folder, 'tools')
 
-    for toolpath in p.iterdir():
+    # FIXME: to look for dir names in configuration
+    for toolpath in toolposix.iterdir():
 
         toolname = helpers.last_dir(toolpath)
         log.debug('Tool: %s' % toolname)
@@ -63,11 +65,34 @@ def version(ctx, project='core', branch='master'):
 
             # change __version__
             x = path.build([toolpath])
-            res = list(x.glob('**/__init__.py'))
+            init = '/__init__.py'
+            res = list(x.glob('*%s' % init))
+
+            # remove tests
+            if len(res) == 2:
+                newres = []
+                for pp in res:
+                    ppstr = str(pp)
+                    dirname = helpers.latest_dir(ppstr.replace(init, ''))
+                    if not dirname.startswith('test'):
+                        newres.append(pp)
+                res = newres.copy()
+
             if len(res) < 1:
+                # it looks like this is not a python package
+                print("REQUIREMENTS!\n\n")
                 continue
             elif len(res) > 1:
-                log.exit("Too many init: %s" % res)
+
+                # normal cycle
+                for pp in res:
+                    ppstr = str(pp)
+                    dirname = helpers.latest_dir(ppstr.replace(init, ''))
+                    if dirname == toolname:
+                        filepath = ppstr
+                        break
+                else:
+                    log.exit("Too many init: %s" % res)
             else:
                 filepath = res.pop()
 
@@ -76,7 +101,8 @@ def version(ctx, project='core', branch='master'):
                 content = fh.read()
 
             # re find
-            version_re = r"__version__\s?=\s?'([0-9\.]+)'"
+            version_var = '__version__'
+            version_re = version_var + r"\s?=\s?'([0-9\.]+)'"
             pattern = re.compile(version_re)
             match = pattern.search(content)
             if match:
@@ -86,12 +112,49 @@ def version(ctx, project='core', branch='master'):
 
             if version == branch:
                 log.verbose('Python version already matching')
+            # re replace
             else:
                 log.very_verbose('Current python version: %s' % version)
-                # re replace
+                new_content = pattern.sub(
+                    "%s = '%s'" % (version_var, branch), content)
+                with open(filepath, 'w') as fw:
+                    fw.write(new_content)
+                log.info('Overwritten python version: %s' % branch)
 
-            exit(1)
+            if push:
+                raise NotImplementedError("git push!")
+
+            # exit(1)
+            # out of TOOL
 
         # out of CD
 
     # out of FOR
+
+    # Core or eudat (project)
+    if project == 'core':
+        p = path.join(folder, project)
+
+        # FIXME: to look for dir names in configuration
+        links = {
+            'http': 'backend',
+            'builds': 'builds_base',
+            'utilities': 'utilities'
+        }
+
+        submodulespath = path.join(p, 'submodules')
+        with path.cd(submodulespath):
+            for name, link in links.items():
+                linkpath = path.join(submodulespath, link)
+                if not path.file_exists_and_nonzero(linkpath):
+                    toolpath = path.join(toolposix, name)
+                    exe.command('ln -s %s %s' % (toolpath, link))
+                    log.debug('Linked: %s' % toolpath)
+
+    else:
+        folder = config.get('fork-path', {}).get(project)
+        if folder is None:
+            log.exit("Missing fork dir definition in ~/.invoke.yaml")
+        p = path.build(folder)
+
+    print(project, p)
