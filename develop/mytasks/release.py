@@ -249,7 +249,8 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
 
     #######################################
     # Core or eudat (project)
-    if project == 'core':
+    iscore = project == 'core'
+    if iscore:
         p = path.join(folder, project)
 
         # FIXME: to look for dir names in configuration
@@ -332,4 +333,10 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
                 log.info('Updated: %s' % req)
             else:
                 log.verbose('Project Configuration: already matching')
-    exit(1)
+
+    if iscore and push:
+        if 'nothing to commit' not in exe.command('git status'):
+            exe.command("git commit -a -m 'new version %s'" % branch)
+
+        gitout = exe.command('git push origin %s' % branch)
+        log.debug('pushed:\n%s' % gitout)
