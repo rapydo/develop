@@ -197,7 +197,9 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
             # NOTE: not needed anymore; we use a python variable __version__
 
             # TODO: install in development mode
+            raise NotImplementedError("install as editable!")
             # pip3 install --upgrade --no-cache-dir --editable .
+            # DO this only if not already linked to egg. How to check??
 
             if push:
                 raise NotImplementedError("git push!")
@@ -276,7 +278,6 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
     version_re = r'(branch:[\s]+)([a-z0-9-.]+)'
     pattern = re.compile(version_re)
     for req in p.glob('projects/%s/project_configuration.yaml' % project):
-        log.warning("Searching in:\n%s" % req)
         log.very_verbose("Searching in:\n%s" % req)
         # open
         with open(req) as fh:
@@ -284,5 +285,18 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
         # find
         matches = pattern.findall(content)
         if matches:
-            print(matches)
+            newcontent = content[:]
+            # replace only if necessary
+            for match in matches:
+                if match[1] != branch:
+                    old = match[0] + match[1]
+                    new = match[0] + branch
+                    newcontent = newcontent.replace(old, new)
+                    log.very_verbose('Fixed requirement: %s' % old)
+            if newcontent != content:
+                with open(req, 'w') as fw:
+                    fw.write(newcontent)
+                log.info('Updated: %s' % req)
+            else:
+                log.verbose('Project Configuration: already matching')
     exit(1)
