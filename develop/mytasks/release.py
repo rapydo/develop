@@ -10,14 +10,65 @@ log = logs.get_logger(__name__)
 log.setLevel(logs.VERBOSE)
 
 
+def git_checkout(branch, project_name):
+
+    # check git status
+    current_branch = None
+    existing = False
+
+    for branch_line in exe.command('git branch').split('\n'):
+        investigated_branch = branch_line.strip()
+
+        if investigated_branch.startswith('*'):
+            investigated_branch = investigated_branch.lstrip('*').lstrip()
+            current_branch = investigated_branch
+
+        if investigated_branch == branch:
+            existing = True
+
+    # do the right git selection
+    if existing:
+        if current_branch == branch:
+            log.debug('%s already in %s' % (project_name, branch))
+            pass
+        else:
+            out = exe.command('git checkout ' + branch)
+            log.debug('switch %s to %s' % (project_name, branch))
+            print(out)
+    else:
+        out = exe.command('git checkout -b ' + branch)
+        log.info('created %s in %s' % (branch, project_name))
+        print(out)
+
+
+def git_push(branch, message=None):
+
+    if 'nothing to commit' not in exe.command('git status'):
+        if message is None:
+            message = "new version: %s" % branch
+        exe.command("git commit -a -m '%s'" % message)
+        log.debug('Committed missing files')
+
+    gitout = exe.command('git push origin %s' % branch)
+    if 'Everything up-to-date' not in gitout:
+        log.info('Pushed to remote')
+
+
 # @task(pre=[prerequisites.install])
 @task
-def version(ctx, project='core', branch='master', push=False, tag=False):
+def version(ctx,
+            project='core', branch='master',
+            push=False, tag=False, message=None):
     """ Change current release version on all tools """
 
-    #######################################
+    if push or tag:
+        from utilities import checks
+        if not checks.internet_connection_available():
+            log.exit('Internet connection unavailable')
+        else:
+            log.checked("Internet connection available")
+
     # TODO: make the config get a function in `config.py`
-    # log.info(ctx.config)
     config = ctx.config.get('develop', {})
     folder = config.get('main-path')
     if folder is None:
@@ -26,7 +77,7 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
         log.debug("Main path: %s" % folder)
 
     #######################################
-    # TODO: refactor this whole piece of code
+    # TODO: refactor this whole piece of code below
     #######################################
     import re
     from utilities import path
@@ -45,42 +96,17 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
 
         with path.cd(toolpath):
 
-            #######################################
-            # check git status
-            current = None
-            existing = False
-            for branch_line in exe.command('git branch').split('\n'):
-                mybranch = branch_line.strip()
+            git_checkout(branch, toolname)
 
-                if mybranch.startswith('*'):
-                    mybranch = mybranch.lstrip('*').lstrip()
-                    current = mybranch
-
-                if mybranch == branch:
-                    existing = True
-
-            #######################################
-            # do the right git selection
-            if existing:
-                if current == branch:
-                    log.debug('%s already in %s' % (toolname, branch))
-                    pass
-                else:
-                    out = exe.command('git checkout ' + branch)
-                    log.debug('switch %s to %s' % (toolname, branch))
-                    print(out)
-            else:
-                out = exe.command('git checkout -b ' + branch)
-                log.info('created %s in %s' % (branch, toolname))
-                print(out)
-
-            #######################################
-            # change __version__
+            # NOTE: knowing if there is an __init__.py or not
+            # will tell us if this is a python project/package
             x = path.build([toolpath])
             init = '/__init__.py'
+
+            # find out if and how many __init__.py are there
             res = list(x.glob('*%s' % init))
 
-            # remove tests
+            # remove test directories from the list
             if len(res) == 2:
                 newres = []
                 for pp in res:
@@ -124,11 +150,18 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
                             log.info('Updated: %s' % req)
                         else:
                             log.verbose('%s untouched' % req)
+
+                if push:
+                    git_push(branch, message)
+
+                if tag:
+                    raise NotImplementedError("tag: check or create and push!")
+
                 continue
+
             elif len(res) > 1:
 
-                #######################################
-                # normal cycle
+                # if more than one: look for the one with the same name
                 for pp in res:
                     ppstr = str(pp)
                     dirname = helpers.latest_dir(ppstr.replace(init, ''))
@@ -140,6 +173,7 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
             else:
                 filepath = res.pop()
 
+            # change __version__
             log.very_verbose("Searching version:\n%s" % filepath)
             with open(filepath) as fh:
                 content = fh.read()
@@ -155,7 +189,7 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
                 log.exit('Missing version in init file')
 
             if version == branch:
-                log.verbose('Python version already matching')
+                log.checked('Python version already matching')
             # re replace
             else:
                 log.very_verbose('Current python version: %s' % version)
@@ -193,7 +227,7 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
                             fw.write(newcontent)
                         log.info('Updated: %s' % req)
                     else:
-                        log.verbose('Requirements already matching')
+                        log.checked('Requirements already matching')
 
             if toolname not in ['http']:
 
@@ -229,13 +263,8 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
             else:
                 log.info("Skipped installation")
 
-            #######################################
             if push:
-                if 'nothing to commit' not in exe.command('git status'):
-                    exe.command("git commit -a -m 'new version %s'" % branch)
-
-                gitout = exe.command('git push origin %s' % branch)
-                log.debug('pushed:\n%s' % gitout)
+                git_push(branch, message)
 
             if tag:
                 raise NotImplementedError("git tag check or create and push!")
@@ -251,7 +280,7 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
     # Core or eudat (project)
     iscore = project == 'core'
     if iscore:
-        p = path.join(folder, project)
+        projpath = path.join(folder, project)
 
         # FIXME: to look for dir names in configuration
         links = {
@@ -260,7 +289,7 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
             'utilities': 'utilities'
         }
 
-        submodulespath = path.join(p, 'submodules')
+        submodulespath = path.join(projpath, 'submodules')
         with path.cd(submodulespath):
             for name, link in links.items():
                 linkpath = path.join(submodulespath, link)
@@ -277,13 +306,13 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
         folder = config.get('fork-path', {}).get(project)
         if folder is None:
             log.exit("Missing fork dir definition in ~/.invoke.yaml")
-        p = path.build(folder)
+        projpath = path.build(folder)
 
     #######################################
     # project requirements regex replace
     version_re = r'(' + GITREPOS_TEAM + r'/[^@]+@)([a-z0-9-.]+)'
     pattern = re.compile(version_re)
-    for req in p.glob('projects/%s/requirements.txt' % project):
+    for req in projpath.glob('projects/%s/requirements.txt' % project):
         log.very_verbose("Searching in:\n%s" % req)
         # open
         with open(req) as fh:
@@ -305,13 +334,16 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
                     fw.write(newcontent)
                 log.info('Updated: %s' % req)
             else:
-                log.verbose('Requirements already matching')
+                log.checked('Requirements already matching')
 
     #######################################
     # project configuration regex replace
     version_re = r'(branch:[\s]+)([a-z0-9-.]+)'
     pattern = re.compile(version_re)
-    for req in p.glob('projects/%s/project_configuration.yaml' % project):
+    from utilities import PROJECT_CONF_FILENAME
+    from utilities.myyaml import YAML_EXT
+    filename = 'projects/%s/%s.%s' % (project, PROJECT_CONF_FILENAME, YAML_EXT)
+    for req in projpath.glob(filename):
         log.very_verbose("Searching in:\n%s" % req)
         # open
         with open(req) as fh:
@@ -332,11 +364,13 @@ def version(ctx, project='core', branch='master', push=False, tag=False):
                     fw.write(newcontent)
                 log.info('Updated: %s' % req)
             else:
-                log.verbose('Project Configuration: already matching')
+                log.checked('Project Configuration: already matching')
 
-    if iscore and push:
-        if 'nothing to commit' not in exe.command('git status'):
-            exe.command("git commit -a -m 'new version %s'" % branch)
+    # Only if a rapydo component
+    if iscore:
 
-        gitout = exe.command('git push origin %s' % branch)
-        log.debug('pushed:\n%s' % gitout)
+        git_checkout(branch, 'core')
+
+        if push:
+            with path.cd(projpath):
+                git_push(branch, message)

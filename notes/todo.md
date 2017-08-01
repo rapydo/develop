@@ -21,29 +21,6 @@ development/
 ```
 
 
-## switch version
-
-- list tools:
-    + builds, controller, develop, http, utilities
-    + read from projects_defaults ?
-- list projects from dir:
-    + core, eudat, others 
-- dependencies:
-    + utils > develop > core > controller > build-templates > http
-
-- choose: project e.g. 'eudat' AND branch e.g. '0.5.3'
-- for each `tools`
-    - glob/pathlib on */__init__.py and change __version__.py
-        - use regexps and expressions
-    - change projects/eudat/project_configuration.yaml
-        - YAML path is repos: utils, backend and build-templates
-    - git branch -a
-        - if exists: git checkout $BRANCH
-        - else create: git checkout -b $BRANCH
-            + and push
-    - pip3 install editable/develop
-
-
 ## best practices
 
 - [ ] template cookiecutter
@@ -89,3 +66,15 @@ else:
 - [x] git cli tag and so auto-release
 - [x] release base
 - [x] short + long description rst (Only short)
+- [x] choose: project e.g. 'eudat' AND branch e.g. '0.5.3'
+- [x] for each `tools`
+    - glob/pathlib on */__init__.py and change __version__.py
+        - use regexps and expressions
+    - change projects/eudat/project_configuration.yaml
+        - YAML path is repos: utils, backend and build-templates
+    - git branch -a
+        - if exists: git checkout $BRANCH
+        - else create: git checkout -b $BRANCH
+            + and push
+    - pip3 install editable/develop
+- [x] switch version

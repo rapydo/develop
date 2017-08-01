@@ -11,6 +11,8 @@ def output(result, output_array=False, do_not_die=False):
 
     if result.ok:
         output = result.stdout.strip()
+        if output == '':
+            output = result.stderr.strip()
     else:
         error = result.stderr.strip()
         if error == '':

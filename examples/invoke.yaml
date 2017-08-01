@@ -1,0 +1,17 @@
+
+# example of personal user configuration
+
+develop:
+  main-path: /Users/projects/rapydo
+  fork-path:
+    eudat: /Users/projects/restapi/http-api
+    # FIXME: this should be main-path/projects/eudat
+  tools:
+    # utilities > core > controller > develop >builds > http-api
+    - utilities
+    # - core
+    - controller
+    - develop
+    - builds
+    - http
+
