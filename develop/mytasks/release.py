@@ -280,6 +280,7 @@ def version(ctx,
     # Core or eudat (project)
     iscore = project == 'core'
     if iscore:
+        log.info('PROJECT: core')
         projpath = path.join(folder, project)
 
         # FIXME: to look for dir names in configuration
@@ -307,6 +308,7 @@ def version(ctx,
         if folder is None:
             log.exit("Missing fork dir definition in ~/.invoke.yaml")
         projpath = path.build(folder)
+        log.info('PROJECT: %s' % project)
 
     #######################################
     # project requirements regex replace
