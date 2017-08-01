@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import re
 from invoke import task
-# from develop.mytasks import prerequisites
 from develop import execution as exe
+# from develop.mytasks import prerequisites
+from utilities import path
+from utilities import helpers
+from utilities import GITREPOS_TEAM
 from utilities import logs
 
 log = logs.get_logger(__name__)
-# FIXME: set global level from global option?
-log.setLevel(logs.VERBOSE)
+# # FIXME: set global level from global option?
+# log.setLevel(logs.VERBOSE)
 
 
 def git_checkout(branch, project_name):
@@ -56,40 +60,47 @@ def git_push(branch, message=None):
 
 # @task(pre=[prerequisites.install])
 @task
+def status(ctx):
+    """ test """
+
+    from develop import config
+    folder = config.get_parameter(ctx, 'main-path', description='Main path')
+    toolposix = path.join(folder, 'tools')
+
+    for toolname in config.get_parameter(ctx, 'tools', default={}):
+
+        log.info('Tool: %s' % toolname)
+        toolpath = path.join(toolposix, toolname)
+
+        with path.cd(toolpath):
+            gitout = exe.command('git status')
+            if 'nothing to commit' in gitout:
+                pass
+            else:
+                log.warning("Things to be committed:")
+                print(gitout)
+
+
+# @task(pre=[prerequisites.install])
+@task
 def version(ctx,
             project='core', branch='master',
             push=False, tag=False, message=None, develop=False):
     """ Change current release version on all tools """
 
     if push or tag:
-        from utilities import checks
-        if not checks.internet_connection_available():
-            log.exit('Internet connection unavailable')
-        else:
-            log.checked("Internet connection available")
+        from develop import checks
+        checks.not_connected()
 
-    # TODO: make the config get a function in `config.py`
-    config = ctx.config.get('develop', {})
-    folder = config.get('main-path')
-    if folder is None:
-        log.exit("Missing folder definition in ~/.invoke.yaml")
-    else:
-        log.debug("Main path: %s" % folder)
+    from develop import config
+    folder = config.get_parameter(ctx, 'main-path', description='Main path')
 
     #######################################
     # TODO: refactor this whole piece of code below
     #######################################
-    import re
-    from utilities import path
-    from utilities import helpers
-    from utilities import GITREPOS_TEAM
     toolposix = path.join(folder, 'tools')
 
-    # # FIXME: to look for dir names in configuration
-    # for toolpath in toolposix.iterdir():
-    #     toolname = helpers.last_dir(toolpath)
-
-    for toolname in config.get('tools'):
+    for toolname in config.get_parameter(ctx, 'tools', default={}):
 
         log.info('Tool: %s' % toolname)
         toolpath = path.join(toolposix, toolname)
@@ -307,7 +318,7 @@ def version(ctx,
     #######################################
     else:
         # This is a forked project (e.g. EUDAT)
-        folder = config.get('fork-path', {}).get(project)
+        folder = config.get_parameter(ctx, 'fork-path', default={}).get(project)
         if folder is None:
             log.exit("Missing fork dir definition in ~/.invoke.yaml")
         projpath = path.build(folder)

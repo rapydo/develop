@@ -2,6 +2,7 @@
 
 from develop import execution
 from utilities import path
+from utilities import checks
 from utilities.logs import get_logger
 
 log = get_logger(__name__)
@@ -20,6 +21,13 @@ def not_found(error, check_path=False):
             '%s' % path.current()
         )
     exit()
+
+
+def not_connected():
+    if not checks.internet_connection_available():
+        log.exit('Internet connection unavailable')
+    else:
+        log.checked("Internet connection available")
 
 
 def check_file(func, objname):
