@@ -3,80 +3,20 @@
 import re
 from invoke import task
 from develop import execution as exe
+from develop import git
 # from develop.mytasks import prerequisites
 from utilities import path
 from utilities import helpers
 from utilities import GITREPOS_TEAM
 from utilities import logs
+import logging
 
+#################
 log = logs.get_logger(__name__)
-# # FIXME: set global level from global option?
+# FIXME: set global level from global option?
 # log.setLevel(logs.VERBOSE)
-
-
-def git_checkout(branch, project_name):
-
-    # check git status
-    current_branch = None
-    existing = False
-
-    for branch_line in exe.command('git branch').split('\n'):
-        investigated_branch = branch_line.strip()
-
-        if investigated_branch.startswith('*'):
-            investigated_branch = investigated_branch.lstrip('*').lstrip()
-            current_branch = investigated_branch
-
-        if investigated_branch == branch:
-            existing = True
-
-    # do the right git selection
-    if existing:
-        if current_branch == branch:
-            log.debug('%s already in %s' % (project_name, branch))
-            pass
-        else:
-            out = exe.command('git checkout ' + branch)
-            log.debug('switch %s to %s' % (project_name, branch))
-            print(out)
-    else:
-        out = exe.command('git checkout -b ' + branch)
-        log.info('created %s in %s' % (branch, project_name))
-        print(out)
-
-
-def git_push(branch, message=None):
-
-    if 'nothing to commit' not in exe.command('git status'):
-        if message is None:
-            message = "version: %s" % branch
-        exe.command("git commit -a -m '%s'" % message)
-        log.warning('Committed missing files')
-
-    gitout = exe.command('git push origin %s' % branch)
-    if 'Everything up-to-date' not in gitout:
-        log.info('Pushed to remote')
-
-
-def git_tags():
-    return exe.command('git tag --list').split('\n')
-
-
-def git_tag(tag, branch, message=None, push=False):
-
-    if branch not in tag:
-        log.exit("Misleading tag: %s. It should contain %s." % (tag, branch))
-
-    if tag in git_tags():
-        log.debug('Tag %s already exists' % tag)
-    else:
-        # create tag
-        exe.command("git tag -a %s -m '%s'" % (tag, message))
-        log.info("Tagged: %s" % tag)
-        if push:
-            com = "git push origin --follow-tags refs/tags/%s" % tag
-            exe.command(com)
-            log.warning("Pushed tag: %s" % tag)
+log.setLevel(logging.DEBUG)
+#################
 
 
 # @task(pre=[prerequisites.install])
@@ -100,19 +40,6 @@ def status(ctx):
             else:
                 log.warning("Things to be committed:")
                 print(gitout)
-
-
-def push_and_tags(push, tag, branch, message):
-
-    # ################
-    # if tag:
-    #     raise NotImplementedError("tag: check or create and push!")
-    # ################
-
-    if push:
-        git_push(branch, message)
-    if tag is not None:
-        git_tag(tag, branch, message, push)
 
 
 # @task(pre=[prerequisites.install])
@@ -141,7 +68,7 @@ def version(ctx,
 
         with path.cd(toolpath):
 
-            git_checkout(branch, toolname)
+            git.checkout(branch, toolname)
 
             # NOTE: knowing if there is an __init__.py or not
             # will tell us if this is a python project/package
@@ -196,7 +123,7 @@ def version(ctx,
                         else:
                             log.checked('%s untouched' % helpers.last_dir(req))
 
-                push_and_tags(push, tag, branch, message)
+                git.push_and_tags(push, tag, branch, message)
                 continue
 
             elif len(res) > 1:
@@ -303,7 +230,7 @@ def version(ctx,
             else:
                 log.info("Skipped installation")
 
-            push_and_tags(push, tag, branch, message)
+            git.push_and_tags(push, tag, branch, message)
 
             # exit(1)
             # out of TOOL
@@ -408,5 +335,5 @@ def version(ctx,
     # Only if a rapydo component
     if iscore:
         with path.cd(projpath):
-            git_checkout(branch, 'core')
-            push_and_tags(push, tag, branch, message)
+            git.checkout(branch, 'core')
+            git.push_and_tags(push, tag, branch, message)
