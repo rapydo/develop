@@ -45,9 +45,9 @@ def git_push(branch, message=None):
 
     if 'nothing to commit' not in exe.command('git status'):
         if message is None:
-            message = "new version: %s" % branch
+            message = "version: %s" % branch
         exe.command("git commit -a -m '%s'" % message)
-        log.debug('Committed missing files')
+        log.warning('Committed missing files')
 
     gitout = exe.command('git push origin %s' % branch)
     if 'Everything up-to-date' not in gitout:
