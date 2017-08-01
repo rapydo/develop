@@ -58,6 +58,27 @@ def git_push(branch, message=None):
         log.info('Pushed to remote')
 
 
+def git_tags():
+    return exe.command('git tag --list').split('\n')
+
+
+def git_tag(tag, branch, message=None, push=False):
+
+    if branch not in tag:
+        log.exit("Misleading tag: %s. It should contain %s." % (tag, branch))
+
+    if tag in git_tags():
+        log.debug('Tag %s already exists' % tag)
+    else:
+        # create tag
+        exe.command("git tag -a %s -m '%s'" % (tag, message))
+        log.info("Tagged: %s" % tag)
+        if push:
+            com = "git push origin --follow-tags refs/tags/%s" % tag
+            exe.command(com)
+            log.warning("Pushed tag: %s" % tag)
+
+
 # @task(pre=[prerequisites.install])
 @task
 def status(ctx):
@@ -81,14 +102,27 @@ def status(ctx):
                 print(gitout)
 
 
+def push_and_tags(push, tag, branch, message):
+
+    # ################
+    # if tag:
+    #     raise NotImplementedError("tag: check or create and push!")
+    # ################
+
+    if push:
+        git_push(branch, message)
+    if tag is not None:
+        git_tag(tag, branch, message, push)
+
+
 # @task(pre=[prerequisites.install])
 @task
 def version(ctx,
             project='core', branch='master',
-            push=False, tag=False, message=None, develop=False):
+            push=False, tag=None, message=None, develop=False):
     """ Change current release version on all tools """
 
-    if push or tag:
+    if push or tag is not None:
         from develop import checks
         checks.not_connected()
 
@@ -107,12 +141,7 @@ def version(ctx,
 
         with path.cd(toolpath):
 
-            dogit = True
-            if toolname == 'develop':
-                dogit = develop
-
-            if dogit:
-                git_checkout(branch, toolname)
+            git_checkout(branch, toolname)
 
             # NOTE: knowing if there is an __init__.py or not
             # will tell us if this is a python project/package
@@ -167,11 +196,7 @@ def version(ctx,
                         else:
                             log.checked('%s untouched' % helpers.last_dir(req))
 
-                if push:
-                    git_push(branch, message)
-                if tag:
-                    raise NotImplementedError("tag: check or create and push!")
-
+                push_and_tags(push, tag, branch, message)
                 continue
 
             elif len(res) > 1:
@@ -278,10 +303,7 @@ def version(ctx,
             else:
                 log.info("Skipped installation")
 
-            if push and dogit:
-                git_push(branch, message)
-            if tag:
-                raise NotImplementedError("git tag check or create and push!")
+            push_and_tags(push, tag, branch, message)
 
             # exit(1)
             # out of TOOL
@@ -318,7 +340,8 @@ def version(ctx,
     #######################################
     else:
         # This is a forked project (e.g. EUDAT)
-        folder = config.get_parameter(ctx, 'fork-path', default={}).get(project)
+        folder = config.get_parameter(
+            ctx, 'fork-path', default={}).get(project)
         if folder is None:
             log.exit("Missing fork dir definition in ~/.invoke.yaml")
         projpath = path.build(folder)
@@ -386,7 +409,4 @@ def version(ctx,
     if iscore:
         with path.cd(projpath):
             git_checkout(branch, 'core')
-            if push:
-                git_push(branch, message)
-            if tag:
-                raise NotImplementedError("tag: check or create and push!")
+            push_and_tags(push, tag, branch, message)
