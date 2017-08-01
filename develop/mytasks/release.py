@@ -99,6 +99,7 @@ def version(ctx,
             dogit = True
             if toolname == 'develop':
                 dogit = develop
+            print("TEST", toolname, dogit)
 
             if dogit:
                 git_checkout(branch, toolname)
@@ -379,5 +380,6 @@ def version(ctx,
         git_checkout(branch, 'core')
 
         if push:
+            print("PATH:", projpath)
             with path.cd(projpath):
                 git_push(branch, message)
