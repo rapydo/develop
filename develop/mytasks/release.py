@@ -99,7 +99,6 @@ def version(ctx,
             dogit = True
             if toolname == 'develop':
                 dogit = develop
-            print("TEST", toolname, dogit)
 
             if dogit:
                 git_checkout(branch, toolname)
@@ -155,12 +154,11 @@ def version(ctx,
                                 fw.write(newcontent)
                             log.info('Updated: %s' % req)
                         else:
-                            log.verbose('%s untouched' % req)
+                            log.checked('%s untouched' % helpers.last_dir(req))
 
-                if push and dogit:
+                if push:
                     git_push(branch, message)
-
-                if tag and dogit:
+                if tag:
                     raise NotImplementedError("tag: check or create and push!")
 
                 continue
@@ -269,9 +267,8 @@ def version(ctx,
             else:
                 log.info("Skipped installation")
 
-            if push:
+            if push and dogit:
                 git_push(branch, message)
-
             if tag:
                 raise NotImplementedError("git tag check or create and push!")
 
@@ -376,10 +373,9 @@ def version(ctx,
 
     # Only if a rapydo component
     if iscore:
-
-        git_checkout(branch, 'core')
-
-        if push:
-            print("PATH:", projpath)
-            with path.cd(projpath):
+        with path.cd(projpath):
+            git_checkout(branch, 'core')
+            if push:
                 git_push(branch, message)
+            if tag:
+                raise NotImplementedError("tag: check or create and push!")

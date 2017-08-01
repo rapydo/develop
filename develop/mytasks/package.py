@@ -31,5 +31,5 @@ def install(ctx, editable=False):
 #     log.warning("TODO")
 
 
-# def show_release_output(raw):
-#     return raw
+def show_release_output(raw):
+    return raw
