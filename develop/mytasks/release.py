@@ -58,7 +58,7 @@ def git_push(branch, message=None):
 @task
 def version(ctx,
             project='core', branch='master',
-            push=False, tag=False, message=None):
+            push=False, tag=False, message=None, develop=False):
     """ Change current release version on all tools """
 
     if push or tag:
@@ -96,7 +96,12 @@ def version(ctx,
 
         with path.cd(toolpath):
 
-            git_checkout(branch, toolname)
+            dogit = True
+            if toolname == 'develop':
+                dogit = develop
+
+            if dogit:
+                git_checkout(branch, toolname)
 
             # NOTE: knowing if there is an __init__.py or not
             # will tell us if this is a python project/package
@@ -151,10 +156,10 @@ def version(ctx,
                         else:
                             log.verbose('%s untouched' % req)
 
-                if push:
+                if push and dogit:
                     git_push(branch, message)
 
-                if tag:
+                if tag and dogit:
                     raise NotImplementedError("tag: check or create and push!")
 
                 continue
