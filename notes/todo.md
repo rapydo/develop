@@ -1,6 +1,24 @@
 
 # Things to do
 
+
+## production problems
+
+- [x] error on permission of /opt/certificates
+    + using the ubuntu mounted permissions (1001) instead of system (999)
+- [ ] error on IP used for dev. how to inject into /etc/hosts?
+    + env variable?
+- [ ] remove the default user/password in production!!!
+- [ ] develop which links to projects
+    + inject only roles and generate random password with docker secret like function (see also jwt secret?)
+- [ ] ensure the new docker image built is used from the new container :/
+    + restart gracefully: docker-compose up --build --force-recreate
+- [ ] automatically copy simple ca(s) from mounted folder
+
+
+
+## the path
+
 set the root path with a `.developrc` file, then:
 
 ```
