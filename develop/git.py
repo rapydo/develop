@@ -59,6 +59,11 @@ def tag(tag_name, branch, message=None, push_decision=False):
     if branch not in tag_name:
         log.exit("Misleading tag %s: not containing %s" % (tag_name, branch))
 
+    import re
+    pattern = re.compile(r'^v[0-9.]+$')
+    if not pattern.match(tag_name):
+        log.exit("Tag accepted for releases are in the form of: vX.Y.Z")
+
     if tag_name in tags():
         log.debug('Tag %s already exists' % tag_name)
     else:

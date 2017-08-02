@@ -60,6 +60,7 @@ def version(ctx,
     # TODO: refactor this whole piece of code below
     #######################################
     toolposix = path.join(folder, 'tools')
+    installed = False
 
     for toolname in config.get_parameter(ctx, 'tools', default={}):
 
@@ -212,10 +213,13 @@ def version(ctx,
                 #######################################
                 # install in development mode
                 infos = {}
-                data = exe.command('pip3 show %s' % package_name)
-                for info in data.split('\n'):
-                    key, value = info.split(': ')
-                    infos[key.lower()] = value
+                data = exe.command('pip3 show %s' % package_name, noexit=True)
+                if isinstance(data, str) and len(data) > 0:
+                    for info in data.split('\n'):
+                        key, value = info.split(': ')
+                        infos[key.lower()] = value
+                else:
+                    log.verbose('%s currently not installed' % package_name)
 
                 doinstall = True
                 if infos.get('location') == str(toolpath):
@@ -225,8 +229,9 @@ def version(ctx,
                 if doinstall:
                     exe.command(
                         'pip3 install --upgrade --no-cache-dir --editable .')
-                    log.installed('installed %s==%s in develop mode'
-                                  % (package_name, version))
+                    installed = True
+                    log.warning('installed %s==%s in develop mode'
+                                % (package_name, version))
             else:
                 log.info("Skipped installation")
 
@@ -337,3 +342,7 @@ def version(ctx,
         with path.cd(projpath):
             git.checkout(branch, 'core')
             git.push_and_tags(push, tag, branch, message)
+
+    if installed:
+        out = exe.com('pip3 list --format columns | grep %s' % GITREPOS_TEAM)
+        log.warning('Currently installed:\n%s' % out)
