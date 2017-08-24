@@ -1,11 +1,8 @@
 
 # Things to do
-
-
-## production problems
-
-- [x] error on permission of /opt/certificates
-    + using the ubuntu mounted permissions (1001) instead of system (999)
+ 
+- [ ] `rapydo services` should list the services available in docker compose
+- [ ] `rapydo interface --list` should list the interfaces
 - [ ] error on IP used for dev. how to inject into /etc/hosts?
     + env variable?
 - [ ] remove the default user/password in production!!!

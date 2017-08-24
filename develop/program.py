@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from invoke import Program  # , Argument
+from invoke import Program, Argument
 
 
 class CLIProgram(Program):
 
-    # def core_args(self):
-    #     core_args = super(MyProgram, self).core_args()
-    #     extra_args = [
-    #         # Argument(
-    #         #     name='services',
-    #         #     help="This was added by Paulie"
-    #         # ),
-    #     ]
-    #     return core_args + extra_args
+    def core_args(self):
+        core_args = super(CLIProgram, self).core_args()
+        extra_args = [
+            Argument(
+                name='log-level',
+                help="set application log level"
+            ),
+        ]
+        return core_args + extra_args
 
     def print_help(self):
         """
@@ -32,10 +32,11 @@ class CLIProgram(Program):
         print("Usage: {0} {1}".format(self.binary, usage_suffix))
         print("")
 
-        # OPTIONS TO BE OVERRIDDEN
+        # # OPTIONS TO BE OVERRIDDEN
         # print("Core options:")
         # print("")
         # self.print_columns(self.initial_context.help_tuples())
+        # exit(1)
 
         if self.namespace is not None:
             self.list_tasks()
