@@ -4,7 +4,7 @@ python:
 - 3.5
 - 3.6.2
 before_install:
-- pip install --upgrade setuptools # bug fix
+- pip install --upgrade setuptools # bug fix http://j.mp/2v9Hs98
 - pip install --upgrade -r dev-requirements.txt
 install:
 - pip3 install --upgrade --no-cache-dir --editable .
