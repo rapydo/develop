@@ -7,6 +7,7 @@ from develop.mytasks import \
     package as package_ops, \
     release as release_ops
 
+log = CLIProgram.setup_logger()
 
 # class DoConfig(Config):
 #     prefix = 'cmd'
@@ -19,3 +20,4 @@ ns = Collection()
 ns.add_collection(package_ops)
 ns.add_collection(release_ops)
 program = CLIProgram(namespace=ns, version=__version__)
+log.very_verbose("App: %s", program)

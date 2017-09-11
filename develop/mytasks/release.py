@@ -4,19 +4,15 @@ import re
 from invoke import task
 from develop import execution as exe
 from develop import git
+from develop import checks
+from develop import config
 # from develop.mytasks import prerequisites
 from utilities import path
 from utilities import helpers
 from utilities import GITREPOS_TEAM
 from utilities import logs
-import logging
 
-#################
 log = logs.get_logger(__name__)
-# FIXME: set global level from global option?
-# log.setLevel(logs.VERBOSE)
-log.setLevel(logging.DEBUG)
-#################
 
 
 # @task(pre=[prerequisites.install])
@@ -24,7 +20,6 @@ log.setLevel(logging.DEBUG)
 def status(ctx):
     """ test """
 
-    from develop import config
     folder = config.get_parameter(ctx, 'main-path', description='Main path')
     toolposix = path.join(folder, 'tools')
 
@@ -42,18 +37,43 @@ def status(ctx):
                 print(gitout)
 
 
+@task
+def tag(ctx):
+    """ to do """
+    pass
+
+
+@task
+def pr(ctx, message=None):
+    """ Create pull requests on all tools based on current branch/version """
+
+    checks.not_connected()
+    folder = config.get_parameter(ctx, 'main-path', description='Main path')
+    toolposix = path.join(folder, 'tools')
+
+    for toolname in config.get_parameter(ctx, 'tools', default={}):
+
+        log.info('Tool: %s', toolname)
+        toolpath = path.join(toolposix, toolname)
+        log.warning("Path: %s", toolpath)
+        break
+
+        # TODO: add pull requests with:
+        # hub pull-request -m 'test'
+        # execution.command?
+
+
 # @task(pre=[prerequisites.install])
 @task
 def version(ctx,
             project='core', branch='master',
-            push=False, tag=None, message=None, develop=False):
+            push=False, tag=None,
+            message=None, develop=False):
     """ Change current release version on all tools """
 
     if push or tag is not None:
-        from develop import checks
         checks.not_connected()
 
-    from develop import config
     folder = config.get_parameter(ctx, 'main-path', description='Main path')
 
     #######################################
@@ -64,7 +84,7 @@ def version(ctx,
 
     for toolname in config.get_parameter(ctx, 'tools', default={}):
 
-        log.info('Tool: %s' % toolname)
+        log.info('Tool: %s', toolname)
         toolpath = path.join(toolposix, toolname)
 
         with path.cd(toolpath):
@@ -101,7 +121,7 @@ def version(ctx,
                 for req in x.glob('*/*requirements.txt'):
 
                     # open
-                    log.very_verbose("Searching version:\n%s" % req)
+                    log.very_verbose("Searching version:\n%s", req)
                     with open(req) as fh:
                         content = fh.read()
 
@@ -116,13 +136,13 @@ def version(ctx,
                                 old = match[0] + match[1]
                                 new = match[0] + branch
                                 newcontent = newcontent.replace(old, new)
-                                log.very_verbose('Fixed requirement: %s' % old)
+                                log.very_verbose('Fixed requirement: %s', old)
                         if newcontent != content:
                             with open(req, 'w') as fw:
                                 fw.write(newcontent)
-                            log.info('Updated: %s' % req)
+                            log.info('Updated: %s', req)
                         else:
-                            log.checked('%s untouched' % helpers.last_dir(req))
+                            log.checked('%s untouched', helpers.last_dir(req))
 
                 git.push_and_tags(push, tag, branch, message)
                 continue
@@ -137,12 +157,12 @@ def version(ctx,
                         filepath = ppstr
                         break
                 else:
-                    log.exit("Too many init: %s" % res)
+                    log.exit("Too many init: %s", res)
             else:
                 filepath = res.pop()
 
             # change __version__
-            log.very_verbose("Searching version:\n%s" % filepath)
+            log.very_verbose("Searching version:\n%s", filepath)
             with open(filepath) as fh:
                 content = fh.read()
 
@@ -160,12 +180,12 @@ def version(ctx,
                 log.checked('Python version already matching')
             # re replace
             else:
-                log.very_verbose('Current python version: %s' % version)
+                log.very_verbose('Current python version: %s', version)
                 new_content = pattern.sub(
                     "%s = '%s'" % (version_var, branch), content)
                 with open(filepath, 'w') as fw:
                     fw.write(new_content)
-                log.info('Overwritten python version: %s' % branch)
+                log.info('Overwritten python version: %s', branch)
 
             #######################################
             # Python requirements
@@ -175,7 +195,7 @@ def version(ctx,
             # find and replace all requirements files
             for req in x.glob('*requirements.txt'):
                 # open
-                log.very_verbose("Searching version:\n%s" % req)
+                log.very_verbose("Searching version:\n%s", req)
                 with open(req) as fh:
                     content = fh.read()
                 # find
@@ -189,11 +209,11 @@ def version(ctx,
                             old = match[0] + match[1]
                             new = match[0] + branch
                             newcontent = newcontent.replace(old, new)
-                            log.very_verbose('Fixed requirement: %s' % old)
+                            log.very_verbose('Fixed requirement: %s', old)
                     if newcontent != content:
                         with open(req, 'w') as fw:
                             fw.write(newcontent)
-                        log.info('Updated: %s' % req)
+                        log.info('Updated: %s', req)
                     else:
                         log.checked('Requirements already matching')
 
@@ -219,7 +239,7 @@ def version(ctx,
                         key, value = info.split(': ')
                         infos[key.lower()] = value
                 else:
-                    log.verbose('%s currently not installed' % package_name)
+                    log.verbose('%s currently not installed', package_name)
 
                 doinstall = True
                 if infos.get('location') == str(toolpath):
@@ -230,8 +250,8 @@ def version(ctx,
                     exe.command(
                         'pip3 install --upgrade --no-cache-dir --editable .')
                     installed = True
-                    log.warning('installed %s==%s in develop mode'
-                                % (package_name, version))
+                    log.warning('installed %s==%s in develop mode',
+                                package_name, version)
             else:
                 log.info("Skipped installation")
 
@@ -265,7 +285,7 @@ def version(ctx,
                 if not path.file_exists_and_nonzero(linkpath):
                     toolpath = path.join(toolposix, name)
                     exe.command('ln -s %s %s' % (toolpath, link))
-                    log.debug('Linked: %s' % toolpath)
+                    log.debug('Linked: %s', toolpath)
 
         project = 'template'
 
@@ -277,14 +297,14 @@ def version(ctx,
         if folder is None:
             log.exit("Missing fork dir definition in ~/.invoke.yaml")
         projpath = path.build(folder)
-        log.info('PROJECT: %s' % project)
+        log.info('PROJECT: %s', project)
 
     #######################################
     # project requirements regex replace
     version_re = r'(' + GITREPOS_TEAM + r'/[^@]+@)([a-z0-9-.]+)'
     pattern = re.compile(version_re)
     for req in projpath.glob('projects/%s/requirements.txt' % project):
-        log.very_verbose("Searching in:\n%s" % req)
+        log.very_verbose("Searching in:\n%s", req)
         # open
         with open(req) as fh:
             content = fh.read()
@@ -299,11 +319,11 @@ def version(ctx,
                     old = match[0] + match[1]
                     new = match[0] + branch
                     newcontent = newcontent.replace(old, new)
-                    log.very_verbose('Fixed requirement: %s' % old)
+                    log.very_verbose('Fixed requirement: %s', old)
             if newcontent != content:
                 with open(req, 'w') as fw:
                     fw.write(newcontent)
-                log.info('Updated: %s' % req)
+                log.info('Updated: %s', req)
             else:
                 log.checked('Requirements already matching')
 
@@ -315,7 +335,7 @@ def version(ctx,
     from utilities.myyaml import YAML_EXT
     filename = 'projects/%s/%s.%s' % (project, PROJECT_CONF_FILENAME, YAML_EXT)
     for req in projpath.glob(filename):
-        log.very_verbose("Searching in:\n%s" % req)
+        log.very_verbose("Searching in:\n%s", req)
         # open
         with open(req) as fh:
             content = fh.read()
@@ -329,11 +349,11 @@ def version(ctx,
                     old = match[0] + match[1]
                     new = match[0] + branch
                     newcontent = newcontent.replace(old, new)
-                    log.very_verbose('Fixed requirement: %s' % old)
+                    log.very_verbose('Fixed requirement: %s', old)
             if newcontent != content:
                 with open(req, 'w') as fw:
                     fw.write(newcontent)
-                log.info('Updated: %s' % req)
+                log.info('Updated: %s', req)
             else:
                 log.checked('Project Configuration: already matching')
 
@@ -345,4 +365,4 @@ def version(ctx,
 
     if installed:
         out = exe.com('pip3 list --format columns | grep %s' % GITREPOS_TEAM)
-        log.warning('Currently installed:\n%s' % out)
+        log.warning('Currently installed:\n%s', out)

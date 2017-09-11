@@ -21,6 +21,12 @@ class CLIProgram(Program):
 
         super(CLIProgram, self).__init__(version=version, namespace=namespace)
 
+    @staticmethod
+    def setup_logger():
+        from utilities import apiclient
+        level = apiclient.check_cli_arg('log-level', get=True)
+        return apiclient.setup_logger(__name__, level_name=level)
+
     def core_args(self):
         core_args = super(CLIProgram, self).core_args()
         # for core in core_args:
