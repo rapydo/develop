@@ -56,9 +56,11 @@ def pr(ctx, message=None, branch='master', force=False):
     if message is None:
         message = 'Automatic pull request to release version "%s"' % branch
 
+    # TODO: cycling on tools should be separated in a dedicated class
+
     for toolname in config.get_parameter(ctx, 'tools', default={}):
 
-        log.debug('Tool: %s', toolname)
+        log.info('Tool: %s', toolname)
         toolpath = path.join(toolposix, toolname)
         log.verbose("Path: %s", toolpath)
 
@@ -73,7 +75,7 @@ def pr(ctx, message=None, branch='master', force=False):
             if 'error' in out.lower():
                 # NOTE: twice a pull request on the same branch gives error
                 if 'pull request already exists for' in out:
-                    print("Already exists")
+                    log.warning("Already exists")
                 else:
                     log.exit("Failed:\n%s", out)
             else:

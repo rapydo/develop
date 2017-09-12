@@ -4,6 +4,10 @@ from invoke import Program, Argument
 
 
 class CLIProgram(Program):
+    """
+    The invoke modified class for a command line program/application in Python
+    # TODO: move into utilities to reduce dependencies
+    """
 
     def __init__(self, version=None, namespace=None, extra_arguments=None):
 
