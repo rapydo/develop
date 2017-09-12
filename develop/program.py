@@ -1,19 +1,42 @@
 # -*- coding: utf-8 -*-
 
-from invoke import Program  # , Argument
+from invoke import Program, Argument
 
 
 class CLIProgram(Program):
+    """
+    The invoke modified class for a command line program/application in Python
+    # TODO: move into utilities to reduce dependencies
+    """
 
-    # def core_args(self):
-    #     core_args = super(MyProgram, self).core_args()
-    #     extra_args = [
-    #         # Argument(
-    #         #     name='services',
-    #         #     help="This was added by Paulie"
-    #         # ),
-    #     ]
-    #     return core_args + extra_args
+    def __init__(self, version=None, namespace=None, extra_arguments=None):
+
+        if extra_arguments is None:
+            self.extra_args = []
+        else:
+            self.extra_args = extra_arguments
+
+        self.extra_args.append(
+            Argument(
+                name='log-level',
+                help="set the application log level"
+            )
+        )
+
+        super(CLIProgram, self).__init__(version=version, namespace=namespace)
+
+    @staticmethod
+    def setup_logger():
+        from utilities import apiclient
+        level = apiclient.check_cli_arg('log-level', get=True)
+        return apiclient.setup_logger(__name__, level_name=level)
+
+    def core_args(self):
+        core_args = super(CLIProgram, self).core_args()
+        # for core in core_args:
+        #     from beeprint import pp
+        #     pp(core)
+        return core_args + self.extra_args
 
     def print_help(self):
         """
@@ -32,10 +55,15 @@ class CLIProgram(Program):
         print("Usage: {0} {1}".format(self.binary, usage_suffix))
         print("")
 
-        # OPTIONS TO BE OVERRIDDEN
-        # print("Core options:")
-        # print("")
-        # self.print_columns(self.initial_context.help_tuples())
+        print("Core options:")
+        print("")
+
+        helps = [arg.help for arg in self.extra_args]
+        tuples = []
+        for mytuple in self.initial_context.help_tuples():
+            if mytuple[1] in helps:
+                tuples.append(mytuple)
+        self.print_columns(tuples)
 
         if self.namespace is not None:
             self.list_tasks()

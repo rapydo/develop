@@ -11,12 +11,15 @@ def output(result, output_array=False, do_not_die=False):
 
     if result.ok:
         output = result.stdout.strip()
+        if output == '':
+            output = result.stderr.strip()
     else:
         error = result.stderr.strip()
+        if error == '':
+            error = result.stdout.strip()
         if do_not_die:
             output = error
         else:
-
             log.exit(error)
 
     if output_array:
@@ -47,7 +50,7 @@ def parse_version(result, original_name, unknown='Unknown'):
     return unknown
 
 
-def command(cmdstring, output_array=False, get_result=False):
+def command(cmdstring, output_array=False, get_result=False, exit=True):
     """
     Execute a 'normal' command based on invoke runners
     """
@@ -56,7 +59,7 @@ def command(cmdstring, output_array=False, get_result=False):
     if get_result:
         return result
 
-    return output(result, output_array)
+    return output(result, output_array, do_not_die=not exit)
 
 
 def get_version(cmdstring, version_argument='--version', get_result=False):
