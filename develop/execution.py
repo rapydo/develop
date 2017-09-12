@@ -50,7 +50,7 @@ def parse_version(result, original_name, unknown='Unknown'):
     return unknown
 
 
-def command(cmdstring, output_array=False, get_result=False, noexit=False):
+def command(cmdstring, output_array=False, get_result=False, exit=True):
     """
     Execute a 'normal' command based on invoke runners
     """
@@ -59,7 +59,7 @@ def command(cmdstring, output_array=False, get_result=False, noexit=False):
     if get_result:
         return result
 
-    return output(result, output_array, do_not_die=noexit)
+    return output(result, output_array, do_not_die=not exit)
 
 
 def get_version(cmdstring, version_argument='--version', get_result=False):

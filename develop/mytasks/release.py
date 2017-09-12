@@ -44,23 +44,40 @@ def tag(ctx):
 
 
 @task
-def pr(ctx, message=None):
+def pr(ctx, message=None, branch='master', force=False):
     """ Create pull requests on all tools based on current branch/version """
 
     checks.not_connected()
+    CMD_BASE = 'hub pull-request'
+
     folder = config.get_parameter(ctx, 'main-path', description='Main path')
     toolposix = path.join(folder, 'tools')
 
+    if message is None:
+        message = 'Automatic pull request to release version "%s"' % branch
+
     for toolname in config.get_parameter(ctx, 'tools', default={}):
 
-        log.info('Tool: %s', toolname)
+        log.debug('Tool: %s', toolname)
         toolpath = path.join(toolposix, toolname)
-        log.warning("Path: %s", toolpath)
-        break
+        log.verbose("Path: %s", toolpath)
 
-        # TODO: add pull requests with:
-        # hub pull-request -m 'test'
-        # execution.command?
+        with path.cd(toolpath):
+
+            cmd = CMD_BASE
+            if force:
+                cmd += ' -f'
+            cmd += ' -m \"%s\"' % message
+
+            out = exe.command(cmd, exit=False)
+            if 'error' in out.lower():
+                # NOTE: twice a pull request on the same branch gives error
+                if 'pull request already exists for' in out:
+                    print("Already exists")
+                else:
+                    log.exit("Failed:\n%s", out)
+            else:
+                log.info("Created pull request: %s", out)
 
 
 # @task(pre=[prerequisites.install])
@@ -233,7 +250,7 @@ def version(ctx,
                 #######################################
                 # install in development mode
                 infos = {}
-                data = exe.command('pip3 show %s' % package_name, noexit=True)
+                data = exe.command('pip3 show %s' % package_name, exit=False)
                 if isinstance(data, str) and len(data) > 0:
                     for info in data.split('\n'):
                         key, value = info.split(': ')
