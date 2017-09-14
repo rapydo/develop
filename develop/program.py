@@ -1,12 +1,21 @@
 # -*- coding: utf-8 -*-
 
-from invoke import Program, Argument
+
+from utilities.logs import get_logger
+log = get_logger(__name__)
+
+try:
+    from invoke import Program, Argument
+except ImportError as e:
+    log.exit("\nThis module requires an extra package:\n%s", e)
 
 
 class CLIProgram(Program):
     """
-    The invoke modified class for a command line program/application in Python
-    # TODO: move into utilities to reduce dependencies
+    The invoke modified class:
+    for a command line program/application in Python;
+
+    To be included in a cookiecutter template in the future.
     """
 
     def __init__(self, version=None, namespace=None, extra_arguments=None):
@@ -26,10 +35,12 @@ class CLIProgram(Program):
         super(CLIProgram, self).__init__(version=version, namespace=namespace)
 
     @staticmethod
-    def setup_logger():
+    def setup_logger(name=None):
+        if name is None:
+            name = __name__
         from utilities import apiclient
         level = apiclient.check_cli_arg('log-level', get=True)
-        return apiclient.setup_logger(__name__, level_name=level)
+        return apiclient.setup_logger(name, level_name=level)
 
     def core_args(self):
         core_args = super(CLIProgram, self).core_args()
