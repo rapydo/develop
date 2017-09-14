@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import better_exceptions as be
 from invoke import Collection  # , Config
 from develop import __version__
 from develop.program import CLIProgram
@@ -20,4 +21,4 @@ ns = Collection()
 ns.add_collection(package_ops)
 ns.add_collection(release_ops)
 program = CLIProgram(namespace=ns, version=__version__)
-log.very_verbose("App: %s", program)
+log.very_verbose("App: %s; w/ %s.", program, be.__name__)
