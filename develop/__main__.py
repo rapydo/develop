@@ -8,7 +8,7 @@ from develop.mytasks import \
     package as package_ops, \
     release as release_ops
 
-log = App.setup_logger()
+log = App.setup_logger(name=__name__)
 
 ns = Collection()
 # ns.add_task()
