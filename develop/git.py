@@ -50,6 +50,7 @@ def push(branch, message=None):
     if string not in exe.command('git status'):
         if message is None:
             message = "version: %s" % branch
+        # exe.command("git add -A")
         exe.command("git commit -a -m '%s'" % message)
         log.warning('Committed missing files')
     else:

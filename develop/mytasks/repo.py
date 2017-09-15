@@ -27,10 +27,8 @@ def status(ctx, tool=None):
 
 
 @task
-def push(ctx, message=None):
+def push(ctx, message=None, sleep_time=2):
     """ Verify the status of the git repositoy of every tool """
-
-    sleep_time = 5
 
     def myfunc(toolpath, params):
 
@@ -42,6 +40,7 @@ def push(ctx, message=None):
         git.push(branch, message)
 
         import time
+        log.debug('Sleeping: %s seconds', sleep_time)
         time.sleep(sleep_time)
 
     cycles.tools(ctx, myfunc, {'message': message})
