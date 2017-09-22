@@ -7,7 +7,6 @@ from develop import git
 from develop import checks
 from develop import cycles
 from develop import config
-# from develop import cycles
 # from develop.mytasks import prerequisites
 from utilities import path
 from utilities import helpers
@@ -17,9 +16,31 @@ from utilities import logs
 log = logs.get_logger(__name__)
 
 
+# @task(pre=[prerequisites.install])
+@task
+def status(ctx):
+    """ test """
+
+    folder = config.get_parameter(ctx, 'main-path', description='Main path')
+    toolposix = path.join(folder, 'tools')
+
+    for toolname in config.get_parameter(ctx, 'tools', default={}):
+
+        log.info('Tool: %s' % toolname)
+        toolpath = path.join(toolposix, toolname)
+
+        with path.cd(toolpath):
+            gitout = exe.command('git status')
+            if 'nothing to commit' in gitout:
+                pass
+            else:
+                log.warning("Things to be committed:")
+                print(gitout)
+
+
 @task
 def tag(ctx):
-    """ yet to do! """
+    """ to do """
     pass
 
 
