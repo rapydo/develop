@@ -5,6 +5,7 @@ from invoke import task
 from develop import execution as exe
 from develop import git
 from develop import checks
+from develop import cycles
 from develop import config
 # from develop import cycles
 # from develop.mytasks import prerequisites
@@ -18,7 +19,7 @@ log = logs.get_logger(__name__)
 
 @task
 def tag(ctx):
-    """ to do """
+    """ yet to do! """
     pass
 
 
@@ -26,39 +27,35 @@ def tag(ctx):
 def pr(ctx, message=None, branch='master', force=False):
     """ Create pull requests on all tools based on current branch/version """
 
+    def myfunc(toolpath, params):
+
+        cmd = CMD_BASE
+
+        force = params.get('force')
+        branch = params.get('branch')
+        message = params.get('message')
+        if message is None:
+            message = 'Automatic pull request to release version "%s"' % branch
+
+        if force:
+            cmd += ' -f'
+        cmd += ' -m \"%s\"' % message
+
+        out = exe.command(cmd, exit=False)
+        if 'error' in out.lower():
+            # NOTE: twice a pull request on the same branch gives error
+            if 'pull request already exists for' in out:
+                log.warning("Already exists")
+            else:
+                log.exit("Failed:\n%s", out)
+        else:
+            log.info("Created pull request: %s", out)
+
     checks.not_connected()
     CMD_BASE = 'hub pull-request'
 
-    folder = config.get_parameter(ctx, 'main-path', description='Main path')
-    toolposix = path.join(folder, 'tools')
-
-    if message is None:
-        message = 'Automatic pull request to release version "%s"' % branch
-
-    # TODO: cycling on tools should be separated in a dedicated class
-
-    for toolname in config.get_parameter(ctx, 'tools', default={}):
-
-        log.info('Tool: %s', toolname)
-        toolpath = path.join(toolposix, toolname)
-        log.verbose("Path: %s", toolpath)
-
-        with path.cd(toolpath):
-
-            cmd = CMD_BASE
-            if force:
-                cmd += ' -f'
-            cmd += ' -m \"%s\"' % message
-
-            out = exe.command(cmd, exit=False)
-            if 'error' in out.lower():
-                # NOTE: twice a pull request on the same branch gives error
-                if 'pull request already exists for' in out:
-                    log.warning("Already exists")
-                else:
-                    log.exit("Failed:\n%s", out)
-            else:
-                log.info("Created pull request: %s", out)
+    cycles.tools(
+        ctx, myfunc, {'message': message, 'branch': branch, 'force': force})
 
 
 # @task(pre=[prerequisites.install])
@@ -72,7 +69,7 @@ def version(ctx,
     if push or tag is not None:
         checks.not_connected()
 
-    folder = config.get_parameter(ctx, 'main-path', description='Main path')
+    folder = config.parameter(ctx, 'main-path', description='Main path')
 
     #######################################
     # TODO: refactor this whole piece of code below
@@ -80,7 +77,7 @@ def version(ctx,
     toolposix = path.join(folder, 'tools')
     installed = False
 
-    for toolname in config.get_parameter(ctx, 'tools', default={}):
+    for toolname in config.parameter(ctx, 'tools', default={}):
 
         log.info('Tool: %s', toolname)
         toolpath = path.join(toolposix, toolname)
@@ -290,7 +287,7 @@ def version(ctx,
     #######################################
     else:
         # This is a forked project (e.g. EUDAT)
-        folder = config.get_parameter(
+        folder = config.parameter(
             ctx, 'fork-path', default={}).get(project)
         if folder is None:
             log.exit("Missing fork dir definition in ~/.invoke.yaml")

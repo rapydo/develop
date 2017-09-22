@@ -9,13 +9,10 @@ log = get_logger(__name__)
 
 
 @task
-def status(ctx, tool=None):
-    """ Verify the status of the git repositoy of every tool """
+def status(ctx, tools=None):
+    """ Verify the status of repositories """
 
-    if tool is not None:
-        log.exit("Implement only for %s", tool)
-
-    def myfunc(toolpath):
+    def myfunc(toolpath, params=None):
         gitout = exe.command('git status')
         if 'nothing to commit' in gitout:
             pass
@@ -23,12 +20,15 @@ def status(ctx, tool=None):
             log.warning("Things to be committed:")
             print(gitout)
 
-    cycles.tools(ctx, myfunc)
+    if tools is not None:
+        tools = tools.split(',')
+
+    cycles.tools(ctx, myfunc, tools=tools)
 
 
 @task
-def push(ctx, message=None, sleep_time=2):
-    """ Verify the status of the git repositoy of every tool """
+def push(ctx, message=None, sleep_time=2, tools=None):
+    """ Push git modifications to remote """
 
     def myfunc(toolpath, params):
 
@@ -43,4 +43,7 @@ def push(ctx, message=None, sleep_time=2):
         log.debug('Sleeping: %s seconds', sleep_time)
         time.sleep(sleep_time)
 
-    cycles.tools(ctx, myfunc, {'message': message})
+    if tools is not None:
+        tools = tools.split(',')
+
+    cycles.tools(ctx, myfunc, {'message': message}, tools=tools)

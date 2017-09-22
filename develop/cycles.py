@@ -1,26 +1,31 @@
 # -*- coding: utf-8 -*-
 
-from utilities import logs
-from develop import config
 from utilities import path
+from develop import config
+from develop import TOOLS
+from utilities import logs
 
 log = logs.get_logger(__name__)
 
 
-def tools(ctx, func, params=None):
+def tools(ctx, func, params=None, tools=None):
 
-    folder = config.get_parameter(ctx, 'main-path', description='Main path')
-    toolposix = path.join(folder, 'tools')
+    tools_current_path = config.components_path(ctx)
 
     if params is None:
         params = {}
 
-    # for toolname in config.get_parameter(ctx, 'tools', default={}):
-    from develop import TOOLS
+    if tools is None:
+        tools = TOOLS[:]
+
     for toolname in TOOLS:
 
+        if toolname not in tools:
+            continue
+
         log.info('Tool: %s' % toolname)
-        toolpath = path.join(toolposix, toolname)
+        toolpath = path.join(tools_current_path, toolname)
+        log.verbose("Path: %s", toolpath)
 
         with path.cd(toolpath):
             func(toolpath, params)

@@ -4,12 +4,13 @@ import better_exceptions as be
 from utilities.cli import App
 from develop import __version__
 from invoke import Collection
-from develop.mytasks import package, release, repo
+from develop.mytasks import package, release, repo, framework
 
 log = App.setup_logger(name=__name__)
 
 ns = Collection()
 # ns.add_task()
+ns.add_collection(framework)
 ns.add_collection(package)
 ns.add_collection(release)
 ns.add_collection(repo)
