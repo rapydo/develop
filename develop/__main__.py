@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from invoke import Collection  # , Config
+import better_exceptions as be
+from utilities.cli import App
 from develop import __version__
-from develop.program import CLIProgram
-from develop.mytasks import \
-    package as package_ops, \
-    release as release_ops
+from invoke import Collection
+from develop.mytasks import package, release, repo, framework
 
-log = CLIProgram.setup_logger()
+log = App.setup_logger(name=__name__)
 
-# class DoConfig(Config):
-#     prefix = 'cmd'
-#     # env_prefix = 'TEST'
-
-
-# Using namespaces for sub-sub commands
 ns = Collection()
 # ns.add_task()
-ns.add_collection(package_ops)
-ns.add_collection(release_ops)
-program = CLIProgram(namespace=ns, version=__version__)
-log.very_verbose("App: %s", program)
+ns.add_collection(framework)
+ns.add_collection(package)
+ns.add_collection(release)
+ns.add_collection(repo)
+
+program = App(namespace=ns, version=__version__)
+log.very_verbose("App: %s (+%s)", program, be.__name__)

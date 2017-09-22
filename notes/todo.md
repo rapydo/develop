@@ -21,18 +21,20 @@ set the root path with a `.developrc` file, then:
 ```
 # tree
 development/
-    tools/
-        controller
-        utilities
-        restapi
-        build-templates @onlytags
+    components
+        0.5.5
+            controller
+            utilities
+            restapi
+            build-templates @onlytags
+            core/
+                submodules
+                    links
     projects/
-        core/
-            submodules
-                links
-        eudat/
-            submodules
-                links
+        b2stage/
+            0.6.2/
+                submodules
+                    links
 ```
 
 
