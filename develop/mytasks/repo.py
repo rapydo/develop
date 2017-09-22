@@ -2,6 +2,7 @@
 
 from invoke import task
 from develop import execution as exe
+from develop import git
 from develop import cycles
 from utilities.logs import get_logger
 
@@ -14,6 +15,8 @@ def status(ctx, tools=None):
 
     def myfunc(toolpath, params=None):
         gitout = exe.command('git status')
+        branch = git.current_branch()
+        log.debug("Branch is: %s", branch)
         if 'nothing to commit' in gitout:
             pass
         else:
