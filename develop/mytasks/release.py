@@ -4,7 +4,6 @@ import re
 from invoke import task
 from develop import execution as exe
 from develop import git
-from develop import checks
 from develop import cycles
 from develop import config
 # from develop.mytasks import prerequisites
@@ -16,48 +15,46 @@ from utilities import logs
 log = logs.get_logger(__name__)
 
 
-# @task(pre=[prerequisites.install])
 @task
-def status(ctx):
-    """ test """
-
-    folder = config.get_parameter(ctx, 'main-path', description='Main path')
-    toolposix = path.join(folder, 'tools')
-
-    for toolname in config.get_parameter(ctx, 'tools', default={}):
-
-        log.info('Tool: %s' % toolname)
-        toolpath = path.join(toolposix, toolname)
-
-        with path.cd(toolpath):
-            gitout = exe.command('git status')
-            if 'nothing to commit' in gitout:
-                pass
-            else:
-                log.warning("Things to be committed:")
-                print(gitout)
-
-
-@task
-def tag(ctx):
+def tag(ctx, tools=None, branch=None, name=None, message=None, push=False):
     """ to do """
-    pass
+
+    def tagging(toolpath, branch, message, name, push):
+
+        if branch is None:
+            branch = git.current_branch()
+
+        if message is None:
+            message = 'Automatic tag'
+
+        if name is None:
+            if branch == 'master':
+                log.exit("You must specify a name with branch '%s'", branch)
+            name = 'v' + branch
+
+        git.push_and_tags(push, name, branch, message)
+        #######################
+
+    cycles.tools(
+        ctx, tagging, tools=tools,
+        params={
+            'branch': branch, 'name': name,
+            'message': message, 'push': push
+        }
+    )
 
 
 @task
 def pr(ctx, message=None, branch='master', force=False):
     """ Create pull requests on all tools based on current branch/version """
 
-    def myfunc(toolpath, params):
+    CMD_BASE = 'hub pull-request'
+
+    def pull_requesting(toolpath, force, branch, message):
 
         cmd = CMD_BASE
-
-        force = params.get('force')
-        branch = params.get('branch')
-        message = params.get('message')
         if message is None:
             message = 'Automatic pull request to release version "%s"' % branch
-
         if force:
             cmd += ' -f'
         cmd += ' -m \"%s\"' % message
@@ -72,11 +69,10 @@ def pr(ctx, message=None, branch='master', force=False):
         else:
             log.info("Created pull request: %s", out)
 
-    checks.not_connected()
-    CMD_BASE = 'hub pull-request'
-
     cycles.tools(
-        ctx, myfunc, {'message': message, 'branch': branch, 'force': force})
+        ctx, pull_requesting,
+        params={'message': message, 'branch': branch, 'force': force}
+    )
 
 
 # @task(pre=[prerequisites.install])

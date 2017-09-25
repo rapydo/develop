@@ -2,13 +2,17 @@
 
 from utilities import path
 from develop import config
+from develop import checks
 from develop import TOOLS
 from utilities import logs
 
 log = logs.get_logger(__name__)
 
 
-def tools(ctx, func, params=None, tools=None):
+def tools(ctx, func, params=None, tools=None, check_connection=True):
+
+    if check_connection:
+        checks.not_connected()
 
     tools_current_path = config.components_path(ctx)
 
@@ -17,6 +21,10 @@ def tools(ctx, func, params=None, tools=None):
 
     if tools is None:
         tools = TOOLS[:]
+    else:
+        tools = tools.split(',')
+
+    base_error = 'Failed to apply a function to all tools'
 
     for toolname in TOOLS:
 
@@ -28,4 +36,14 @@ def tools(ctx, func, params=None, tools=None):
         log.verbose("Path: %s", toolpath)
 
         with path.cd(toolpath):
-            func(toolpath, params)
+            try:
+                func(toolpath, **params)
+            except TypeError as e:
+                if 'unexpected keyword argument' in str(e):
+                    error = 'Meta-calling not matching the function signature'
+                    log.exit("%s.\n%s:\n%s", base_error, error, e)
+                else:
+                    raise e
+            except BaseException as e:
+                # log.warning("Failed")
+                raise e

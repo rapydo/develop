@@ -23,9 +23,6 @@ def status(ctx, tools=None):
             log.warning("Things to be committed:")
             print(gitout)
 
-    if tools is not None:
-        tools = tools.split(',')
-
     cycles.tools(ctx, myfunc, tools=tools)
 
 
@@ -33,11 +30,9 @@ def status(ctx, tools=None):
 def push(ctx, message=None, sleep_time=2, tools=None):
     """ Push git modifications to remote """
 
-    def myfunc(toolpath, params):
+    def myfunc(toolpath, message):
 
-        from develop import git
         branch = git.current_branch()
-        message = params.get('message')
         if message is None:
             message = 'Bump: %s' % branch
         git.push(branch, message)
@@ -46,7 +41,4 @@ def push(ctx, message=None, sleep_time=2, tools=None):
         log.debug('Sleeping: %s seconds', sleep_time)
         time.sleep(sleep_time)
 
-    if tools is not None:
-        tools = tools.split(',')
-
-    cycles.tools(ctx, myfunc, {'message': message}, tools=tools)
+    cycles.tools(ctx, myfunc, params={'message': message}, tools=tools)

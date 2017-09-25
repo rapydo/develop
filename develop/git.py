@@ -91,12 +91,8 @@ def tag(tag_name, branch, message=None, push_decision=False):
 
 def push_and_tags(push_var, tag_name, branch, message):
 
-    # ################
-    # if tag:
-    #     raise NotImplementedError("tag: check or create and push!")
-    # ################
-
     if push_var:
         push(branch, message)
+
     if tag_name is not None:
         tag(tag_name, branch, message, push_var)
