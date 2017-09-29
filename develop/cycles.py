@@ -3,7 +3,7 @@
 from utilities import path
 from develop import config
 from develop import checks
-from develop import TOOLS
+from utilities import TOOLS
 from utilities import logs
 
 log = logs.get_logger(__name__)
@@ -15,6 +15,7 @@ def tools(ctx, func, params=None, tools=None, check_connection=True):
         checks.not_connected()
 
     tools_current_path = config.components_path(ctx)
+    version = config.parameter(ctx, param_name='current-release')
 
     if params is None:
         params = {}
@@ -30,14 +31,19 @@ def tools(ctx, func, params=None, tools=None, check_connection=True):
 
         if toolname not in tools:
             continue
+        # FIXME: do something here when frontend is updated
+        elif toolname == 'frontend':
+            log.verbose("Skipping %s", toolname.upper())
+            continue
 
-        log.info('Tool: %s' % toolname)
-        toolpath = path.join(tools_current_path, toolname)
+        # print()
+        log.info('\t|| TOOL:\t%s ||' % toolname)
+        toolpath = path.join(tools_current_path, version, toolname)
         log.verbose("Path: %s", toolpath)
 
         with path.cd(toolpath):
             try:
-                func(toolpath, **params)
+                func(toolname, toolpath, version, **params)
             except TypeError as e:
                 if 'unexpected keyword argument' in str(e):
                     error = 'Meta-calling not matching the function signature'
