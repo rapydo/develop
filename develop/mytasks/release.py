@@ -274,12 +274,19 @@ def link_components(project_name, project_path, components_path):
         .get('variables').get('repos')
 
     submodulespath = path.join(project_path, 'submodules')
+    from utilities import TOOLS as components
+
     with path.cd(submodulespath):
         for toolname in libs.keys():
             if toolname in [CORE_COMPONENT, FRONTEND_COMPONENT]:
                 continue
+
+            if toolname not in components:
+                log.verbose("Skipping non-rapydo tools: %s", toolname)
+                continue
+
             link_path = path.join(submodulespath, toolname)
-            if not path.file_exists_and_nonzero(link_path):
+            if not path.file_exists_and_nonzero(link_path, accept_link=True):
                 linked_path = path.join(components_path, toolname)
                 exe.command('ln -s %s %s' % (linked_path, link_path))
                 log.debug('Linked: %s', linked_path)
@@ -287,24 +294,24 @@ def link_components(project_name, project_path, components_path):
                 log.checked('Already linked: %s', toolname)
 
 
-def switch_project(project_name, project_path, version, rxps):
+def switch_project(prj_name, prj_path, prj_version, rapydo_version, rxps):
 
-    change_project_configuration(project_path, version, rxps)
+    change_project_configuration(prj_path, rapydo_version, rxps)
 
-    for req_path in project_path.glob('projects/*/requirements.txt'):
-        change_requirements(req_path, version, rxps)
+    for req_path in prj_path.glob('projects/*/requirements.txt'):
+        change_requirements(req_path, rapydo_version, rxps)
 
-    components_path = helpers.parent_dir(project_path)
-    link_components(project_name, project_path, components_path)
+    components_path = helpers.parent_dir(prj_path)
+    link_components(prj_name, prj_path, components_path)
 
 
 @task
-def version(ctx, project=None, push=False, message=None):
+def version(ctx, projects=None, push=False, message=None):
     """ Change current release version on all tools """
 
     # FIXME: decide if use or not push+message
 
-    def versioning(toolname, toolpath, version, project, push, message, rxps):
+    def versioning(toolname, toolpath, version, push, message, rxps):
 
         # Switch to the specified branch/version
         git.checkout(version, toolname)
@@ -315,7 +322,7 @@ def version(ctx, project=None, push=False, message=None):
 
             # CORE component
             if toolname == CORE_COMPONENT:
-                switch_project(BASE_PROJECT, toolpath, version, rxps)
+                switch_project(BASE_PROJECT, toolpath, version, version, rxps)
             # BUILDS component
             else:
                 for req_path in toolpath.glob('*/*requirements.txt'):
@@ -340,24 +347,17 @@ def version(ctx, project=None, push=False, message=None):
 
     })
 
-    # FIXME: take me back
-    # # Take care of all components
-    # cycles.tools(
-    #     ctx, versioning,
-    #     params={
-    #         'project': project, 'rxps': rxps,
-    #         'push': push, 'message': message,
-    #     },
-    #     connect=push
-    # )
+    # Take care of all components
+    cycles.tools(
+        ctx, versioning,
+        params={'rxps': rxps, 'push': push, 'message': message},
+        connect=push
+    )
 
     # Take care of specified projects
-    if project is not None:
-        cycles.projects(
-            ctx, switch_project,
-            params={'rxps': rxps}, connect=push
-        )
-    else:
-        log.very_verbose("No project requested")
+    cycles.projects(
+        ctx, switch_project,
+        projects=projects, params={'rxps': rxps}, connect=push
+    )
 
 # END of FILE
