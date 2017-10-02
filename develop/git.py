@@ -5,9 +5,10 @@ from utilities.logs import get_logger
 
 log = get_logger(__name__)
 
+NO_COMMIT = 'nothing to commit'
+
 
 def current_branch():
-
     cmd = 'git symbolic-ref --short HEAD'
     # cmd = 'git rev-parse --abbrev-ref HEAD'
     return exe.command(cmd)
@@ -44,23 +45,35 @@ def checkout(branch, project_name):
         print(out)
 
 
+def status():
+    return exe.command('git status')
+
+
+def changed():
+    return NO_COMMIT not in status()
+
+
 def push(branch, message=None):
 
-    string = 'nothing to commit'
-    if string not in exe.command('git status'):
+    if changed():
         if message is None:
             message = "version: %s" % branch
         # exe.command("git add -A")
         exe.command("git commit -a -m '%s'" % message)
         log.warning('Committed missing files')
     else:
-        log.very_verbose(string.capitalize())
+        log.very_verbose(NO_COMMIT.capitalize())
 
     gitout = exe.command('git push origin %s' % branch)
     if 'Everything up-to-date' not in gitout:
         log.info('Pushed to remote')
     else:
         log.verbose('Nothing to push')
+
+
+def pull(branch):
+    log.debug("Check and download an update")
+    return exe.command('git pull origin %s' % branch)
 
 
 def tags():

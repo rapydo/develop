@@ -42,3 +42,7 @@ def components_path(ctx):
 
 def projects_path(ctx):
     return path.join(main_path(ctx), 'projects')
+
+
+def cli_path(ctx):
+    return path.join(main_path(ctx), 'cli')

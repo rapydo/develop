@@ -20,30 +20,40 @@ def version(ctx, path=None):
     pass
 
 
+def initialize_tool(name, path, version):
+
+    if not path.exists():
+        helpers.ask_yes_or_no(
+            'Component: %s' % name +
+            '\nPath %s not existing (or no permissions).\n' % path +
+            'Do you want me to create it?',
+            error='Unable to continue.'
+        )
+        print("TEST", path)
+        raise NotImplementedError("to do!")
+        exit(1)
+    else:
+        log.checked("Found")
+
+
+def initialize_project(name, path, version):
+    print("TEST", name, path, version)
+
+
+def initialize_cli(name, path, version):
+    pass
+
+
 @task
 def init(ctx, version=None):
     """ Initialize the RAPyDo framework on your machine """
 
-    def initialize(toolname, toolpath, version):
+    raise NotImplementedError("To be completed")
 
-        if not toolpath.exists():
-            helpers.ask_yes_or_no(
-                'Component: %s' % toolname +
-                '\nPath %s not existing (or no permissions).\n' % toolpath +
-                'Do you want me to create it?',
-                error='Unable to continue.'
-            )
-            print("TEST", toolpath)
-            raise NotImplementedError("to do!")
-            exit(1)
-        else:
-            log.checked("Found")
-
-    # 1. COMPONENTS
-    cycles.tools(ctx, initialize)
-
-    # 2. PROJECTS?
-    pass
-
-    # 3. COMMAND LINE TOOLS?
+    # # 1. COMPONENTS
+    # cycles.tools(ctx, initialize_tool)
+    # 2. PROJECTS
+    cycles.projects(ctx, initialize_project, init=True)
+    # 3. COMMAND LINE TOOLS
+    # cycles.cli(ctx, initialize_cli)
     pass

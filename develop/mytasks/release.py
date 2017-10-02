@@ -86,11 +86,12 @@ def find_python_init(toolname, toolpath):
     it will tell us if this is a python project/package
     """
 
-    x = path.build([toolpath])
-    init = '/__init__.py'
+    # # NOTE: this is already a python path
+    # print("PATH", toolpath, type(toolpath))
 
     # find out if and how many __init__.py are there
-    res = list(x.glob('*%s' % init))
+    init = '/__init__.py'
+    res = list(toolpath.glob('*%s' % init))
 
     # remove test directories from the list
     if len(res) == 2:
@@ -263,15 +264,16 @@ def change_project_configuration(projpath, branch, rxps):
             replace_content(filepath, newcontent)
 
 
-def link_components(project, is_template, projpath, components_path):
+def link_components(project_name, project_path, components_path):
     """ Handling submodules links in projects """
 
     from utilities import configuration
+    is_template = project_name == BASE_PROJECT
     libs = configuration \
-        .read(project, is_template) \
+        .read(project_name, is_template) \
         .get('variables').get('repos')
 
-    submodulespath = path.join(projpath, 'submodules')
+    submodulespath = path.join(project_path, 'submodules')
     with path.cd(submodulespath):
         for toolname in libs.keys():
             if toolname in [CORE_COMPONENT, FRONTEND_COMPONENT]:
@@ -285,9 +287,22 @@ def link_components(project, is_template, projpath, components_path):
                 log.checked('Already linked: %s', toolname)
 
 
+def switch_project(project_name, project_path, version, rxps):
+
+    change_project_configuration(project_path, version, rxps)
+
+    for req_path in project_path.glob('projects/*/requirements.txt'):
+        change_requirements(req_path, version, rxps)
+
+    components_path = helpers.parent_dir(project_path)
+    link_components(project_name, project_path, components_path)
+
+
 @task
-def version(ctx, project=CORE_COMPONENT, push=False, message=None):
+def version(ctx, project=None, push=False, message=None):
     """ Change current release version on all tools """
+
+    # FIXME: decide if use or not push+message
 
     def versioning(toolname, toolpath, version, project, push, message, rxps):
 
@@ -299,35 +314,20 @@ def version(ctx, project=CORE_COMPONENT, push=False, message=None):
         if init_path is None:
 
             # CORE component
-            # NOTE: this is a base to switch any project
-
             if toolname == CORE_COMPONENT:
-
-                change_project_configuration(toolpath, version, rxps)
-
-                for req_path in toolpath.glob('projects/*/requirements.txt'):
-                    change_requirements(req_path, version, rxps)
-
-                components_path = helpers.parent_dir(toolpath)
-                link_components(BASE_PROJECT, True, toolpath, components_path)
-
-                # TODO: init the template project with do (at the end)
-
+                switch_project(BASE_PROJECT, toolpath, version, rxps)
             # BUILDS component
             else:
                 for req_path in toolpath.glob('*/*requirements.txt'):
                     change_requirements(req_path, version, rxps)
-        # OTHER components
+        # OTHER components/packages
         else:
             change_version(init_path, version, rxps)
             for req_path in toolpath.glob('*requirements.txt'):
                 change_requirements(req_path, version, rxps)
-
             # all but rapydo-http could/should be installed in development mode
             if toolname not in ['http']:
                 find_package_name(toolpath, version, rxps)
-
-        # git.push_and_tags(push, tag, version, message)
 
     ##########################
 
@@ -340,11 +340,24 @@ def version(ctx, project=CORE_COMPONENT, push=False, message=None):
 
     })
 
-    cycles.tools(
-        ctx, versioning,
-        params={
-            'project': project, 'rxps': rxps,
-            'push': push, 'message': message,
-        },
-        check_connection=push
-    )
+    # FIXME: take me back
+    # # Take care of all components
+    # cycles.tools(
+    #     ctx, versioning,
+    #     params={
+    #         'project': project, 'rxps': rxps,
+    #         'push': push, 'message': message,
+    #     },
+    #     connect=push
+    # )
+
+    # Take care of specified projects
+    if project is not None:
+        cycles.projects(
+            ctx, switch_project,
+            params={'rxps': rxps}, connect=push
+        )
+    else:
+        log.very_verbose("No project requested")
+
+# END of FILE
