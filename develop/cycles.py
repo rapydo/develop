@@ -14,7 +14,12 @@ def tools(ctx, func, params=None, tools=None, connect=True, init=False):
     if connect:
         checks.not_connected()
 
+    # Components path
     tools_current_path = config.components_path(ctx)
+    # Needs to be used again in the future
+    from utilities.globals import mem
+    mem.components_path = tools_current_path
+
     version = config.parameter(ctx, param_name='current-release')
 
     if params is None:

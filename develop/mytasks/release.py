@@ -264,7 +264,7 @@ def change_project_configuration(projpath, branch, rxps):
             replace_content(filepath, newcontent)
 
 
-def link_components(project_name, project_path, components_path):
+def link_components(project_name, project_path, version, components_path):
     """ Handling submodules links in projects """
 
     from utilities import configuration
@@ -287,7 +287,7 @@ def link_components(project_name, project_path, components_path):
 
             link_path = path.join(submodulespath, toolname)
             if not path.file_exists_and_nonzero(link_path, accept_link=True):
-                linked_path = path.join(components_path, toolname)
+                linked_path = path.join(components_path, version, toolname)
                 exe.command('ln -s %s %s' % (linked_path, link_path))
                 log.debug('Linked: %s', linked_path)
             else:
@@ -301,8 +301,8 @@ def switch_project(prj_name, prj_path, prj_version, rapydo_version, rxps):
     for req_path in prj_path.glob('projects/*/requirements.txt'):
         change_requirements(req_path, rapydo_version, rxps)
 
-    components_path = helpers.parent_dir(prj_path)
-    link_components(prj_name, prj_path, components_path)
+    from utilities.globals import mem
+    link_components(prj_name, prj_path, rapydo_version, mem.components_path)
 
 
 @task
