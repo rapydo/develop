@@ -1,17 +1,9 @@
-
-# example of personal user configuration
-
 develop:
-  main-path: /Users/projects/rapydo
-  fork-path:
-    eudat: /Users/projects/restapi/http-api
-    # FIXME: this should be main-path/projects/eudat
-  tools:
-    # utilities > core > controller > develop >builds > http-api
-    - utilities
-    # - core
-    - controller
-    - develop
-    - builds
-    - http
-
+  path: /tmp  # DEFAULT
+  # path: /path/to/your/main/rapydo/dir
+  current-release: 0.5.6
+  projects:
+    your-ownrapydo-core-fork:
+      repo: github.com/TEAM/REPO
+      branch: master
+  tools: all

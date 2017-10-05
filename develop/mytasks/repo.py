@@ -63,7 +63,7 @@ def push(ctx, message=None, sleep_time=2, tools=None):
 
 @task
 def pull(ctx, sleep_time=3, tools=None):
-    """ Push git modifications to remote """
+    """ Recover updates from remote """
 
     def myfunc(toolname, toolpath, version):
 
