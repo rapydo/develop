@@ -73,7 +73,11 @@ def push(branch, message=None):
 
 def pull(branch):
     log.debug("Check and download an update")
-    return exe.command('git pull origin %s' % branch)
+    gitout = exe.command('git pull origin %s' % branch)
+    if gitout.startswith('Already up-to-date'):
+        log.debug('Nothing to pull')
+    else:
+        log.info("Pushed")
 
 
 def tags():
