@@ -77,7 +77,7 @@ def pull(branch):
     if gitout.startswith('Already up-to-date'):
         log.debug('Nothing to pull')
     else:
-        log.info("Pushed")
+        log.info("Received updates")
 
 
 def tags():
