@@ -9,6 +9,7 @@ NO_COMMIT = 'nothing to commit'
 
 
 def current_branch():
+
     cmd = 'git symbolic-ref --short HEAD'
     # cmd = 'git rev-parse --abbrev-ref HEAD'
     return exe.command(cmd)
