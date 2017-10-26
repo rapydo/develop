@@ -13,6 +13,9 @@ log = get_logger(__name__)
 def install(ctx, editable=False):
     """ Install on the local host package from the current folder """
 
+    # FIXME: cycle and apply to work with utilities, controller and develop
+    # raise NotImplementedError("to be completed")
+
     output = exe.long_command(
         cmdstring='pip3 install --upgrade --no-cache-dir --editable .',
         parse_strings=[

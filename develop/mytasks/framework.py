@@ -4,7 +4,7 @@ from invoke import task
 # from develop import execution as exe
 from develop import config
 from utilities import helpers
-# from develop import cycles
+from develop import cycles
 from utilities.logs import get_logger
 
 log = get_logger(__name__)
@@ -20,22 +20,40 @@ def version(ctx, path=None):
     pass
 
 
+def initialize_tool(name, path, version):
+
+    if not path.exists():
+        helpers.ask_yes_or_no(
+            'Component: %s' % name +
+            '\nPath %s not existing (or no permissions).\n' % path +
+            'Do you want me to create it?',
+            error='Unable to continue.'
+        )
+        print("TEST", path)
+        raise NotImplementedError("to do!")
+        exit(1)
+    else:
+        log.checked("Found")
+
+
+def initialize_project(name, path, version):
+    print("TEST", name, path, version)
+
+
+def initialize_cli(name, path, version):
+    pass
+
+
 @task
 def init(ctx, version=None):
     """ Initialize the RAPyDo framework on your machine """
 
-    base_path = config.main_path(ctx)
-    log.debug('Base path: %s', base_path)
-    components_path = config.components_path(ctx)
-    projects_path = config.projects_path(ctx)
+    raise NotImplementedError("To be completed")
 
-    paths = [base_path, components_path, projects_path]
-
-    for element in paths:
-        if not element.exists():
-            helpers.ask_yes_or_no(
-                'Path %s not existing (or no permissions).\n' % element +
-                'Do you want me to create it?',
-                error='Unable to continue.'
-            )
-            print("TEST", element)
+    # # 1. COMPONENTS
+    # cycles.tools(ctx, initialize_tool)
+    # 2. PROJECTS
+    cycles.projects(ctx, initialize_project, init=True)
+    # 3. COMMAND LINE TOOLS
+    # cycles.cli(ctx, initialize_cli)
+    pass

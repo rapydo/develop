@@ -16,7 +16,8 @@ def parameter(ctx, param_name, default=None, description=None):
     param_value = all_config.get(param_name, default)
 
     if param_value is None:
-        log.exit("Missing %s definition in ~/.invoke.yaml" % param_name)
+        log.exit("Missing parameter '%s' definition " +
+                 "in ~/.invoke.yaml", param_name)
     else:
         if description is None:
             description = 'Param ' + param_name
@@ -41,3 +42,7 @@ def components_path(ctx):
 
 def projects_path(ctx):
     return path.join(main_path(ctx), 'projects')
+
+
+def cli_path(ctx):
+    return path.join(main_path(ctx), 'cli')

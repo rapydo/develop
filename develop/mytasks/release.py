@@ -4,60 +4,63 @@ import re
 from invoke import task
 from develop import execution as exe
 from develop import git
-from develop import checks
 from develop import cycles
-from develop import config
+# from develop import config
 # from develop.mytasks import prerequisites
 from utilities import path
 from utilities import helpers
-from utilities import GITREPOS_TEAM
+from utilities import GITREPOS_TEAM, PROJECT_CONF_FILENAME
+from utilities.myyaml import YAML_EXT, load_yaml_file
 from utilities import logs
 
 log = logs.get_logger(__name__)
 
-
-# @task(pre=[prerequisites.install])
-@task
-def status(ctx):
-    """ test """
-
-    folder = config.get_parameter(ctx, 'main-path', description='Main path')
-    toolposix = path.join(folder, 'tools')
-
-    for toolname in config.get_parameter(ctx, 'tools', default={}):
-
-        log.info('Tool: %s' % toolname)
-        toolpath = path.join(toolposix, toolname)
-
-        with path.cd(toolpath):
-            gitout = exe.command('git status')
-            if 'nothing to commit' in gitout:
-                pass
-            else:
-                log.warning("Things to be committed:")
-                print(gitout)
+VERSION_VAR = '__version__'
+REQUIREMENTS_VAR = 'build-requirements'
+SETUP_VAR = 'setup'
+PROJECT_CONF_VAR = 'projects'
+CORE_COMPONENT = 'core'
+FRONTEND_COMPONENT = 'frontend'
+BASE_PROJECT = 'template'
 
 
 @task
-def tag(ctx):
-    """ to do """
-    pass
+def tag(ctx, tools=None, name=None, message=None, push=False):
+    """ Create a tag release and push it if requested """
+
+    def tagging(toolname, toolpath, version, message, name, push):
+
+        # if version is None:
+        #     version = git.current_branch()
+
+        if message is None:
+            message = 'Automatic tag'
+
+        if name is None:
+            if version == 'master':
+                log.exit("You must specify a name with version '%s'", version)
+            name = 'v' + version
+
+        git.push_and_tags(push, name, version, message)
+        #######################
+
+    cycles.tools(
+        ctx, tagging, tools=tools,
+        params={'name': name, 'message': message, 'push': push}
+    )
 
 
 @task
-def pr(ctx, message=None, branch='master', force=False):
+def pr(ctx, message=None, force=False):
     """ Create pull requests on all tools based on current branch/version """
 
-    def myfunc(toolpath, params):
+    CMD_BASE = 'hub pull-request'
+
+    def pull_requesting(toolname, toolpath, version, force, message):
 
         cmd = CMD_BASE
-
-        force = params.get('force')
-        branch = params.get('branch')
-        message = params.get('message')
         if message is None:
-            message = 'Automatic pull request to release version "%s"' % branch
-
+            message = 'Automatic pull-request for version "%s"' % version
         if force:
             cmd += ' -f'
         cmd += ' -m \"%s\"' % message
@@ -72,313 +75,289 @@ def pr(ctx, message=None, branch='master', force=False):
         else:
             log.info("Created pull request: %s", out)
 
-    checks.not_connected()
-    CMD_BASE = 'hub pull-request'
-
     cycles.tools(
-        ctx, myfunc, {'message': message, 'branch': branch, 'force': force})
+        ctx, pull_requesting,
+        params={'message': message, 'force': force}
+    )
 
 
-# @task(pre=[prerequisites.install])
-@task
-def version(ctx,
-            project='core', branch='master',
-            push=False, tag=None,
-            message=None, develop=False):
-    """ Change current release version on all tools """
+def find_python_init(toolname, toolpath):
+    """ If there is an __init__.py
+    it will tell us if this is a python project/package
+    """
 
-    if push or tag is not None:
-        checks.not_connected()
+    # # NOTE: this is already a python path
+    # print("PATH", toolpath, type(toolpath))
 
-    folder = config.parameter(ctx, 'main-path', description='Main path')
+    # find out if and how many __init__.py are there
+    init = '/__init__.py'
+    res = list(toolpath.glob('*%s' % init))
 
-    #######################################
-    # TODO: refactor this whole piece of code below
-    #######################################
-    toolposix = path.join(folder, 'tools')
-    installed = False
+    # remove test directories from the list
+    if len(res) == 2:
+        newres = []
+        for pp in res:
+            ppstr = str(pp)
+            dirname = helpers.latest_dir(ppstr.replace(init, ''))
+            if not dirname.startswith('test'):
+                newres.append(pp)
+        res = newres.copy()
 
-    for toolname in config.parameter(ctx, 'tools', default={}):
+    # Return 'filepath' to the right __init__.py,
+    # or None (not a python package, e.g. docker builds)
+    # or Exception on anything else
 
-        log.info('Tool: %s', toolname)
-        toolpath = path.join(toolposix, toolname)
+    if len(res) < 1:
+        return None
 
-        with path.cd(toolpath):
+    if len(res) > 1:
 
-            git.checkout(branch, toolname)
+        # if more than one: look for the one with the same name
+        for pp in res:
+            ppstr = str(pp)
+            dirname = helpers.latest_dir(ppstr.replace(init, ''))
+            if dirname == toolname:
+                filepath = ppstr
+                break
+        else:
+            log.exit("Too many python __init__?\nFound: %s", res)
+    else:
+        filepath = res.pop()
 
-            # NOTE: knowing if there is an __init__.py or not
-            # will tell us if this is a python project/package
-            x = path.build([toolpath])
-            init = '/__init__.py'
+    return filepath
 
-            # find out if and how many __init__.py are there
-            res = list(x.glob('*%s' % init))
 
-            # remove test directories from the list
-            if len(res) == 2:
-                newres = []
-                for pp in res:
-                    ppstr = str(pp)
-                    dirname = helpers.latest_dir(ppstr.replace(init, ''))
-                    if not dirname.startswith('test'):
-                        newres.append(pp)
-                res = newres.copy()
+def compile_regexps(re_dict):
 
-            if len(res) < 1:
-                #######################################
-                # it looks like this is not a python package
-                # would this be 'build templates'?
+    compiled = {}
+    for name, regex in re_dict.items():
+        compiled[name] = re.compile(regex)
 
-                version_re = r'(' + GITREPOS_TEAM + r'/[^@]+@)([a-z0-9-.]+)'
-                pattern = re.compile(version_re)
+    return compiled
 
-                # find and replace all requirements files
-                for req in x.glob('*/*requirements.txt'):
 
-                    # open
-                    log.very_verbose("Searching version:\n%s", req)
-                    with open(req) as fh:
-                        content = fh.read()
+def read_content(filepath):
+    with open(filepath) as fh:
+        content = fh.read()
+    return content
 
-                    # find
-                    matches = pattern.findall(content)
-                    if matches:
-                        newcontent = content[:]
 
-                        # replace only if necessary
-                        for match in matches:
-                            if match[1] != branch:
-                                old = match[0] + match[1]
-                                new = match[0] + branch
-                                newcontent = newcontent.replace(old, new)
-                                log.very_verbose('Fixed requirement: %s', old)
-                        if newcontent != content:
-                            with open(req, 'w') as fw:
-                                fw.write(newcontent)
-                            log.info('Updated: %s', req)
-                        else:
-                            log.checked('%s untouched', helpers.last_dir(req))
+def replace_content(filepath, newcontent):
+    with open(filepath, 'w') as fw:
+        fw.write(newcontent)
+    log.debug('Overwritten: %s', filepath)
 
-                git.push_and_tags(push, tag, branch, message)
+
+def change_version(filepath, branch, rxps):
+
+    # log.very_verbose("Searching %s:\n%s", VERSION_VAR, filepath)
+    content = read_content(filepath)
+    pattern = rxps.get(VERSION_VAR)
+    match = pattern.search(content)
+
+    if match:
+        current_version = match.group(1)
+    else:
+        log.exit('Missing %s in init file', VERSION_VAR)
+
+    if current_version == branch:
+        log.checked('Python %s already matching: %s', VERSION_VAR, branch)
+    else:
+        log.verbose('Current python %s: %s', VERSION_VAR, current_version)
+        replace_content(
+            filepath,
+            pattern.sub("%s = '%s'" % (VERSION_VAR, branch), content)
+        )
+
+
+def change_requirements(filepath, branch, rxps):
+    # log.very_verbose("Searching requirements:\n%s", filepath)
+    content = read_content(filepath)
+    pattern = rxps.get(REQUIREMENTS_VAR)
+
+    # find
+    matches = pattern.findall(content)
+    if matches:
+        newcontent = content[:]
+
+        # replace only if necessary
+        for match in matches:
+            if match[1] != branch:
+                # NOTE: match[0] is 'branch'
+                old = match[0] + match[1]
+                new = match[0] + branch
+                newcontent = newcontent.replace(old, new)
+                log.verbose('Fixed requirement: %s', old)
+        if newcontent != content:
+            replace_content(filepath, newcontent)
+        else:
+            log.checked('Already updated: %s',
+                        helpers.last_dir(filepath, level=2))
+
+
+def find_package_name(toolpath, branch, rxps):
+
+    setupfiles = list(toolpath.glob('*setup.py'))
+    if len(setupfiles) != 1:
+        log.exit("Too many setup files:%s", toolpath)
+
+    setupfile = setupfiles.pop()
+    content = read_content(setupfile)
+    pattern = rxps.get(SETUP_VAR)
+    match = pattern.search(content)
+    if match:
+        package_name = match.group(1).replace('_', '-')
+    else:
+        log.exit("No package name: %s", setupfile)
+
+    infos = {}
+    data = exe.command('pip3 show %s' % package_name, exit=False)
+    # Something already installed
+    if isinstance(data, str) and len(data) > 0:
+        for info in data.split('\n'):
+            key, value = info.split(': ')
+            infos[key.lower()] = value
+
+        current_version = infos.get('version')
+        if current_version == branch:
+            log.checked("Package up to date")
+        else:
+            log.warning("Package NOT up to date: %s", current_version)
+
+        if infos.get('location') == str(toolpath):
+            log.checked("Package installed in development mode")
+
+    # Not installed yet
+    else:
+        log.debug('%s currently NOT installed', package_name)
+
+
+def change_project_configuration(projpath, branch, rxps):
+
+    paths = 'projects/%s/%s.%s' % ('*', PROJECT_CONF_FILENAME, YAML_EXT)
+    KEY = 'rapydo'
+
+    for filepath in projpath.glob(paths):
+
+        content = read_content(filepath)
+        conf = load_yaml_file(filepath)
+        current_branch = conf.get('project').get(KEY)
+        newcontent = None
+
+        if current_branch is None:
+            # add: replace project keyword appending "rapydo: version"
+            prjkey = 'project:'
+            newcontent = content.replace(
+                prjkey,
+                '%s\n  %s: %s' % (prjkey, KEY, branch))
+        else:
+            if current_branch == branch:
+                log.checked('Configuration already up to date')
+            else:
+                # modify
+                newcontent = content.replace(
+                    '%s: %s' % (KEY, current_branch),
+                    '%s: %s' % (KEY, branch)
+                )
+
+        if newcontent is not None:
+            replace_content(filepath, newcontent)
+
+
+def link_components(project_name, project_path, version, components_path):
+    """ Handling submodules links in projects """
+
+    from utilities import configuration
+    is_template = project_name == BASE_PROJECT
+    libs = configuration \
+        .read(project_name, is_template) \
+        .get('variables').get('repos')
+
+    submodulespath = path.join(project_path, 'submodules')
+    from utilities import TOOLS as components
+
+    with path.cd(submodulespath):
+        for toolname in libs.keys():
+            if toolname in [CORE_COMPONENT, FRONTEND_COMPONENT]:
                 continue
 
-            elif len(res) > 1:
+            if toolname not in components:
+                log.verbose("Skipping non-rapydo tools: %s", toolname)
+                continue
 
-                # if more than one: look for the one with the same name
-                for pp in res:
-                    ppstr = str(pp)
-                    dirname = helpers.latest_dir(ppstr.replace(init, ''))
-                    if dirname == toolname:
-                        filepath = ppstr
-                        break
-                else:
-                    log.exit("Too many init: %s", res)
+            link_path = path.join(submodulespath, toolname)
+            if not path.file_exists_and_nonzero(link_path, accept_link=True):
+                linked_path = path.join(components_path, version, toolname)
+                exe.command('ln -s %s %s' % (linked_path, link_path))
+                log.debug('Linked: %s', linked_path)
             else:
-                filepath = res.pop()
+                log.checked('Already linked: %s', toolname)
 
-            # change __version__
-            log.very_verbose("Searching version:\n%s", filepath)
-            with open(filepath) as fh:
-                content = fh.read()
 
-            # re find
-            version_var = '__version__'
-            version_re = version_var + r"\s?=\s?'([0-9\.]+)'"
-            pattern = re.compile(version_re)
-            match = pattern.search(content)
-            if match:
-                version = match.group(1)
+def switch_project(prj_name, prj_path, prj_version, rapydo_version, rxps):
+
+    change_project_configuration(prj_path, rapydo_version, rxps)
+
+    for req_path in prj_path.glob('projects/*/requirements.txt'):
+        change_requirements(req_path, rapydo_version, rxps)
+
+    from utilities.globals import mem
+    link_components(prj_name, prj_path, rapydo_version, mem.components_path)
+
+
+@task
+def version(ctx, projects=None, push=False, message=None):
+    """ Change current release version on all tools """
+
+    # FIXME: decide if use or not push+message
+
+    def versioning(toolname, toolpath, version, push, message, rxps):
+
+        # Switch to the specified branch/version
+        git.checkout(version, toolname)
+
+        # Look for the branch version in __init__.py files
+        init_path = find_python_init(toolname, toolpath)
+        if init_path is None:
+
+            # CORE component
+            if toolname == CORE_COMPONENT:
+                switch_project(BASE_PROJECT, toolpath, version, version, rxps)
+            # BUILDS component
             else:
-                log.exit('Missing version in init file')
-
-            if version == branch:
-                log.checked('Python version already matching')
-            # re replace
-            else:
-                log.very_verbose('Current python version: %s', version)
-                new_content = pattern.sub(
-                    "%s = '%s'" % (version_var, branch), content)
-                with open(filepath, 'w') as fw:
-                    fw.write(new_content)
-                log.info('Overwritten python version: %s', branch)
-
-            #######################################
-            # Python requirements
-            version_re = r'(' + GITREPOS_TEAM + r'/[^@]+@)([a-z0-9-.]+)'
-            pattern = re.compile(version_re)
-
-            # find and replace all requirements files
-            for req in x.glob('*requirements.txt'):
-                # open
-                log.very_verbose("Searching version:\n%s", req)
-                with open(req) as fh:
-                    content = fh.read()
-                # find
-                matches = pattern.findall(content)
-                if matches:
-                    newcontent = content[:]
-
-                    # replace only if necessary
-                    for match in matches:
-                        if match[1] != branch:
-                            old = match[0] + match[1]
-                            new = match[0] + branch
-                            newcontent = newcontent.replace(old, new)
-                            log.very_verbose('Fixed requirement: %s', old)
-                    if newcontent != content:
-                        with open(req, 'w') as fw:
-                            fw.write(newcontent)
-                        log.info('Updated: %s', req)
-                    else:
-                        log.checked('Requirements already matching')
-
+                for req_path in toolpath.glob('*/*requirements.txt'):
+                    change_requirements(req_path, version, rxps)
+        # OTHER components/packages
+        else:
+            change_version(init_path, version, rxps)
+            for req_path in toolpath.glob('*requirements.txt'):
+                change_requirements(req_path, version, rxps)
+            # all but rapydo-http could/should be installed in development mode
             if toolname not in ['http']:
+                find_package_name(toolpath, version, rxps)
 
-                #######################################
-                # Python setup.py
-                naming_re = r"setup[^a-z]+name='([^\']+)'"
-                pattern = re.compile(naming_re)
-                setupfile = list(x.glob('*setup.py')).pop()
-                with open(setupfile) as fh:
-                    content = fh.read()
-                match = pattern.search(content)
-                if match:
-                    package_name = match.group(1).replace('_', '-')
+    ##########################
 
-                #######################################
-                # install in development mode
-                infos = {}
-                data = exe.command('pip3 show %s' % package_name, exit=False)
-                if isinstance(data, str) and len(data) > 0:
-                    for info in data.split('\n'):
-                        key, value = info.split(': ')
-                        infos[key.lower()] = value
-                else:
-                    log.verbose('%s currently not installed', package_name)
+    rxps = compile_regexps({
+        VERSION_VAR: VERSION_VAR + r"\s?=\s?'([0-9\.]+)'",
+        REQUIREMENTS_VAR: r'(' + GITREPOS_TEAM + r'/[^@]+@)([a-z0-9-.]+)',
+        SETUP_VAR: SETUP_VAR + r"[^a-z]+name='([^\']+)'",
+        # PROJECT_CONF_VAR: r'(branch:[\s]+)([a-z0-9-.]+)',
+        PROJECT_CONF_VAR: r'([a-z-_]+)\:[\s]+branch\:[\s]([^\s]+)'
 
-                doinstall = True
-                if infos.get('location') == str(toolpath):
-                    if infos.get('version') == version:
-                        doinstall = False
+    })
 
-                if doinstall:
-                    exe.command(
-                        'pip3 install --upgrade --no-cache-dir --editable .')
-                    installed = True
-                    log.warning('installed %s==%s in develop mode',
-                                package_name, version)
-            else:
-                log.info("Skipped installation")
+    # Take care of all components
+    cycles.tools(
+        ctx, versioning,
+        params={'rxps': rxps, 'push': push, 'message': message},
+        connect=push
+    )
 
-            git.push_and_tags(push, tag, branch, message)
+    # Take care of specified projects
+    cycles.projects(
+        ctx, switch_project,
+        projects=projects, params={'rxps': rxps}, connect=push
+    )
 
-            # exit(1)
-            # out of TOOL
-
-        # out of CD
-
-    # out of FOR
-
-    #######################################
-    # Core or eudat (project)
-    iscore = project == 'core'
-    if iscore:
-        log.info('PROJECT: core')
-        projpath = path.join(folder, project)
-
-        # FIXME: to look for dir names in configuration
-        links = {
-            'http': 'backend',
-            'builds': 'builds_base',
-            'utilities': 'utilities'
-        }
-
-        submodulespath = path.join(projpath, 'submodules')
-        with path.cd(submodulespath):
-            for name, link in links.items():
-                linkpath = path.join(submodulespath, link)
-                if not path.file_exists_and_nonzero(linkpath):
-                    toolpath = path.join(toolposix, name)
-                    exe.command('ln -s %s %s' % (toolpath, link))
-                    log.debug('Linked: %s', toolpath)
-
-        project = 'template'
-
-    #######################################
-    else:
-        # This is a forked project (e.g. EUDAT)
-        folder = config.parameter(
-            ctx, 'fork-path', default={}).get(project)
-        if folder is None:
-            log.exit("Missing fork dir definition in ~/.invoke.yaml")
-        projpath = path.build(folder)
-        log.info('PROJECT: %s', project)
-
-    #######################################
-    # project requirements regex replace
-    version_re = r'(' + GITREPOS_TEAM + r'/[^@]+@)([a-z0-9-.]+)'
-    pattern = re.compile(version_re)
-    for req in projpath.glob('projects/%s/requirements.txt' % project):
-        log.very_verbose("Searching in:\n%s", req)
-        # open
-        with open(req) as fh:
-            content = fh.read()
-        # find
-        matches = pattern.findall(content)
-        if matches:
-            newcontent = content[:]
-
-            # replace only if necessary
-            for match in matches:
-                if match[1] != branch:
-                    old = match[0] + match[1]
-                    new = match[0] + branch
-                    newcontent = newcontent.replace(old, new)
-                    log.very_verbose('Fixed requirement: %s', old)
-            if newcontent != content:
-                with open(req, 'w') as fw:
-                    fw.write(newcontent)
-                log.info('Updated: %s', req)
-            else:
-                log.checked('Requirements already matching')
-
-    #######################################
-    # project configuration regex replace
-    version_re = r'(branch:[\s]+)([a-z0-9-.]+)'
-    pattern = re.compile(version_re)
-    from utilities import PROJECT_CONF_FILENAME
-    from utilities.myyaml import YAML_EXT
-    filename = 'projects/%s/%s.%s' % (project, PROJECT_CONF_FILENAME, YAML_EXT)
-    for req in projpath.glob(filename):
-        log.very_verbose("Searching in:\n%s", req)
-        # open
-        with open(req) as fh:
-            content = fh.read()
-        # find
-        matches = pattern.findall(content)
-        if matches:
-            newcontent = content[:]
-            # replace only if necessary
-            for match in matches:
-                if match[1] != branch:
-                    old = match[0] + match[1]
-                    new = match[0] + branch
-                    newcontent = newcontent.replace(old, new)
-                    log.very_verbose('Fixed requirement: %s', old)
-            if newcontent != content:
-                with open(req, 'w') as fw:
-                    fw.write(newcontent)
-                log.info('Updated: %s', req)
-            else:
-                log.checked('Project Configuration: already matching')
-
-    # Only if a rapydo component
-    if iscore:
-        with path.cd(projpath):
-            git.checkout(branch, 'core')
-            git.push_and_tags(push, tag, branch, message)
-
-    if installed:
-        out = exe.com('pip3 list --format columns | grep %s' % GITREPOS_TEAM)
-        log.warning('Currently installed:\n%s', out)
+# END of FILE
