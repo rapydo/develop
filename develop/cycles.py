@@ -21,6 +21,7 @@ def tools(ctx, func, params=None, tools=None, connect=True, init=False):
     mem.components_path = tools_current_path
 
     version = config.parameter(ctx, param_name='current-release')
+    log.info("*** current version: %s ***", version)
 
     if params is None:
         params = {}
@@ -41,12 +42,12 @@ def tools(ctx, func, params=None, tools=None, connect=True, init=False):
             log.verbose("Skipping %s", toolname.upper())
             continue
 
-        # print()
         log.info('\t|| TOOL:\t%s' % toolname)
         toolpath = path.join(tools_current_path, version, toolname)
         log.verbose("Path: %s", toolpath)
 
-        # FIXME: check for the path
+        # give error if path does not exist
+        path.existing(toolpath)
 
         with path.cd(toolpath):
             try:
