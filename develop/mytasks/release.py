@@ -241,24 +241,45 @@ def change_project_configuration(projpath, branch, rxps):
 
         content = read_content(filepath)
         conf = load_yaml_file(filepath)
-        current_branch = conf.get('project').get(KEY)
+        info = conf.get('project')
+        project_version = info.get('version')
         newcontent = None
 
-        if current_branch is None:
+        #############################
+        releases = conf.get('releases')
+        curr_rbranch = releases.get(project_version, {}).get(KEY)
+        curr_pbranch = info.get(KEY)
+
+        prj_empty = curr_pbranch is None
+        rls_empty = curr_rbranch is None
+        prj_version_ok = curr_pbranch == branch
+        rls_version_ok = curr_rbranch == branch
+
+        # if missing in release or project -> put in project
+        if prj_empty and rls_empty:
             # add: replace project keyword appending "rapydo: version"
             prjkey = 'project:'
             newcontent = content.replace(
                 prjkey,
                 '%s\n  %s: %s' % (prjkey, KEY, branch))
+            log.info("Adding release")
+        # should i fix?
         else:
-            if current_branch == branch:
-                log.checked('Configuration already up to date')
-            else:
-                # modify
+            fixit = False
+            if not prj_empty and not prj_version_ok:
+                fixit = True
+            if not rls_empty and not rls_version_ok:
+                fixit = True
+
+            if fixit:
+                # fix with the new branch
                 newcontent = content.replace(
-                    '%s: %s' % (KEY, current_branch),
+                    '%s: %s' % (KEY, curr_rbranch),
                     '%s: %s' % (KEY, branch)
                 )
+                log.info("Fixing: %s", filepath)
+            else:
+                log.checked('Configuration already up to date')
 
         if newcontent is not None:
             replace_content(filepath, newcontent)
@@ -296,8 +317,10 @@ def link_components(project_name, project_path, version, components_path):
 
 def switch_project(prj_name, prj_path, prj_version, rapydo_version, rxps):
 
+    # print("SWITCH", prj_name, prj_path)
     change_project_configuration(prj_path, rapydo_version, rxps)
 
+    # FIXME: check here https://github.com/rapydo/issues/issues/65
     for req_path in prj_path.glob('projects/*/requirements.txt'):
         change_requirements(req_path, rapydo_version, rxps)
 
@@ -325,6 +348,7 @@ def version(ctx, projects=None, push=False, message=None):
                 switch_project(BASE_PROJECT, toolpath, version, version, rxps)
             # BUILDS component
             else:
+                return False  # remove me
                 for req_path in toolpath.glob('*/*requirements.txt'):
                     change_requirements(req_path, version, rxps)
         # OTHER components/packages
@@ -335,6 +359,7 @@ def version(ctx, projects=None, push=False, message=None):
             # all but rapydo-http could/should be installed in development mode
             if toolname not in ['http']:
                 find_package_name(toolpath, version, rxps)
+            return False  # remove me
 
     ##########################
 
