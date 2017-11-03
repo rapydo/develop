@@ -332,25 +332,37 @@ def switch_project(prj_name, prj_path, prj_version, rapydo_version, rxps):
 def version(ctx, projects=None, push=False, message=None):
     """ Change current release version on all tools """
 
-    # FIXME: decide if use or not push+message
+    # FIXME: decide if to use or not push+message
 
     def versioning(toolname, toolpath, version, push, message, rxps):
 
-        # Switch to the specified branch/version
+        ###############
+        # NOTE: most likely we start a new branch after a merged PR
+        # of the latest version
+
+        # go to master and update
+        git.checkout(git.MAIN, toolname)
+        git.pull(git.MAIN)
+        log.debug('Obtained latest master')
+        # now switch to the specified branch/version from master
         git.checkout(version, toolname)
 
+        ###############
         # Look for the branch version in __init__.py files
         init_path = find_python_init(toolname, toolpath)
         if init_path is None:
 
+            ###############
             # CORE component
             if toolname == CORE_COMPONENT:
                 switch_project(BASE_PROJECT, toolpath, version, version, rxps)
+            ###############
             # BUILDS component
             else:
                 return False  # remove me
                 for req_path in toolpath.glob('*/*requirements.txt'):
                     change_requirements(req_path, version, rxps)
+        ###############
         # OTHER components/packages
         else:
             change_version(init_path, version, rxps)
@@ -361,8 +373,7 @@ def version(ctx, projects=None, push=False, message=None):
                 find_package_name(toolpath, version, rxps)
             return False  # remove me
 
-    ##########################
-
+    ##########
     rxps = compile_regexps({
         VERSION_VAR: VERSION_VAR + r"\s?=\s?'([0-9\.]+)'",
         REQUIREMENTS_VAR: r'(' + GITREPOS_TEAM + r'/[^@]+@)([a-z0-9-.]+)',
