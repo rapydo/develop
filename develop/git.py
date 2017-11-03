@@ -6,6 +6,7 @@ from utilities.logs import get_logger
 log = get_logger(__name__)
 
 NO_COMMIT = 'nothing to commit'
+MAIN = 'master'
 
 
 def current_branch():

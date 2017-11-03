@@ -1,7 +1,7 @@
 develop:
   path: /tmp  # DEFAULT
   # path: /path/to/your/main/rapydo/dir
-  current-release: 0.5.6
+  current-release: 0.5.7
   projects:
     your-ownrapydo-core-fork:
       repo: github.com/TEAM/REPO
