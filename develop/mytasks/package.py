@@ -10,12 +10,25 @@ from utilities.logs import get_logger
 log = get_logger(__name__)
 
 
+def show_release_output(raw):
+    return raw
+
+
+# @task(pre=[prerequisites.release])
+# def release(ctx):
+#     """ Release on PyPi the package from the current folder """
+
+#     out = exe.command('echo hello world')
+#     log.debug(show_release_output(out))
+#     log.warning("TODO")
+
+
 # @task(pre=[prerequisites.install])
 @task
 def install(ctx, tools=None):
     """ Install local hosted tools as cli """
 
-    def installer(toolname, toolpath, version):
+    def installer(toolname, toolpath, version, project_version=None):
 
         # check if this is a python package
         prerequisites.install()
@@ -33,17 +46,5 @@ def install(ctx, tools=None):
     if tools is None:
         tools = 'utils,develop,do'
 
-    cycles.tools(ctx, installer, tools=tools, params={})
-
-
-# @task(pre=[prerequisites.release])
-# def release(ctx):
-#     """ Release on PyPi the package from the current folder """
-
-#     out = exe.command('echo hello world')
-#     log.debug(show_release_output(out))
-#     log.warning("TODO")
-
-
-def show_release_output(raw):
-    return raw
+    # cycles.tools(ctx, installer, tools=tools, params={})
+    cycles.clis(ctx, installer, connect=False)

@@ -106,3 +106,50 @@ def projects(ctx, func, params=None, projects=None, connect=True, init=False):
             except BaseException as e:
                 # log.warning("Failed")
                 raise e
+
+
+def clis(ctx, func, params=None, clis=None, connect=True, init=False):
+
+    if connect:
+        checks.not_connected()
+
+    current_path = config.cli_path(ctx)
+    rapydo_version = config.parameter(ctx, param_name='current-release')
+    print(current_path, rapydo_version)
+
+    if params is None:
+        params = {}
+
+    if clis is not None:
+        clis = clis.split(',')
+
+    base_error = 'Failed to apply a function to all clis'
+    cli_projects = config.parameter(ctx, param_name='clis', default={})
+    print(cli_projects)
+
+    for prj_name, prj_conf in cli_projects.items():
+
+        if clis is not None and prj_name not in projects:
+            log.debug("Skipping CLI project: %s", prj_name)
+            continue
+
+        prj_version = prj_conf.get('branch')
+        prj_path = path.join(current_path, prj_name, prj_version)
+        log.info('\t|| PROJECT:\t%s/%s' % (prj_name, prj_version))
+
+        # CHECK PATH AND DO INIT
+        if init:
+            raise NotImplementedError("To be done")
+
+        with path.cd(prj_path):
+            try:
+                func(prj_name, prj_path, rapydo_version, prj_version, **params)
+            except TypeError as e:
+                if 'unexpected keyword argument' in str(e):
+                    error = 'Meta-calling not matching the function signature'
+                    log.exit("%s.\n%s:\n%s", base_error, error, e)
+                else:
+                    raise e
+            except BaseException as e:
+                # log.warning("Failed")
+                raise e
