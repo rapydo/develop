@@ -48,8 +48,9 @@ twinerc_check = {
 }
 
 
-@task
-def install(ctx):
+# @task
+# def install(ctx):
+def install():
     """ Check prerequisites for installing the package """
     checks.all([
         python_check,
