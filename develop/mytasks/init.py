@@ -2,7 +2,7 @@
 
 from invoke import task
 # from develop import execution as exe
-from utilities import helpers
+# from utilities import helpers
 from develop import cycles
 from develop import git
 from utilities.logs import get_logger
@@ -21,8 +21,15 @@ def initialize_tool(name, path, version):
         log.error("Failed!")
 
 
-def initialize_project(name, path, version):
-    print("TEST", name, path, version)
+def initialize_project(name, path, version, rapydo_version):
+
+    if path.exists():
+        log.checked("Found: %s:%s", name, version)
+        current = git.current_branch()
+        if current != version:
+            log.exit("Wrong branch: %s = %s", path, current)
+    else:
+        log.error("Failed!")
 
 
 def initialize_cli(name, path, version):
@@ -35,13 +42,13 @@ def init(ctx, version=None):
 
     # 1. COMPONENTS
     cycles.tools(ctx, initialize_tool, init=True)
-    print("DEBUG")
-    exit(1)
+
     # 2. PROJECTS
     cycles.projects(ctx, initialize_project, init=True)
+
     # 3. COMMAND LINE TOOLS
-    # cycles.cli(ctx, initialize_cli)
     pass
+    # cycles.cli(ctx, initialize_cli)
 
 
 @task

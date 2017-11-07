@@ -87,6 +87,10 @@ def projects(ctx, func, params=None, projects=None, connect=True, init=False):
         checks.not_connected()
 
     current_path = config.projects_path(ctx)
+    check = path.existing(current_path, exit=not init)
+    if not check:
+        path.create(current_path, directory=True)
+
     rapydo_version = config.parameter(ctx, param_name='current-release')
 
     if params is None:
@@ -105,16 +109,28 @@ def projects(ctx, func, params=None, projects=None, connect=True, init=False):
             continue
 
         prj_version = prj_conf.get('branch')
-        prj_path = path.join(current_path, prj_name, prj_version)
+        prj_main_path = path.join(current_path, prj_name)
+        check = path.existing(prj_main_path, exit=not init)
+        if not check:
+            path.create(prj_main_path, directory=True)
+
+        prj_version_path = path.join(prj_main_path, prj_version)
+
+        # GIT CLONE
+        check = path.existing(prj_version_path, exit=not init)
+        if not check:
+            from develop import git
+            with path.cd(prj_main_path):
+                git.clone(url=prj_conf.get('repo'), path=prj_version)
+            with path.cd(prj_version_path):
+                git.checkout(prj_version, prj_name, create_if_not_exists=False)
+
         log.info('\t|| PROJECT:\t%s/%s' % (prj_name, prj_version))
 
-        # CHECK PATH AND DO INIT
-        if init:
-            raise NotImplementedError("To be done")
-
-        with path.cd(prj_path):
+        with path.cd(prj_version_path):
             try:
-                func(prj_name, prj_path, prj_version, rapydo_version, **params)
+                func(prj_name, prj_version_path, prj_version,
+                     rapydo_version, **params)
             except TypeError as e:
                 if 'unexpected keyword argument' in str(e):
                     error = 'Meta-calling not matching the function signature'
