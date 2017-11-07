@@ -16,6 +16,10 @@ def tools(ctx, func, params=None, tools=None, connect=True, init=False):
 
     # Components path
     tools_current_path = config.components_path(ctx)
+    check = path.existing(tools_current_path, exit=not init)
+    if not check:
+        path.create(tools_current_path, directory=True)
+
     # Needs to be used again in the future
     from utilities.globals import mem
     mem.components_path = tools_current_path
