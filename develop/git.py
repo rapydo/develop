@@ -16,14 +16,23 @@ def current_branch():
     return exe.command(cmd)
 
 
-def checkout(branch, project_name):
+def clone(url, path=None):
+
+    cmd = 'git clone ' + url
+    if path is not None:
+        cmd += ' ' + path
+    return exe.command(cmd)
+
+
+def checkout(branch, project_name, create_if_not_exists=True):
 
     # check git status
     current_branch = None
     existing = False
 
-    for branch_line in exe.command('git branch').split('\n'):
-        investigated_branch = branch_line.strip()
+    exe.command('git fetch')
+    for line in exe.command('git branch -a').split('\n'):
+        investigated_branch = line.strip().replace('remotes/origin/', '')
 
         if investigated_branch.startswith('*'):
             investigated_branch = investigated_branch.lstrip('*').lstrip()
@@ -36,15 +45,17 @@ def checkout(branch, project_name):
     if existing:
         if current_branch == branch:
             log.debug('%s already in %s' % (project_name, branch))
-            pass
         else:
             out = exe.command('git checkout ' + branch)
             log.debug('switch %s to %s' % (project_name, branch))
             print(out)
     else:
-        out = exe.command('git checkout -b ' + branch)
-        log.info('created %s in %s' % (branch, project_name))
-        print(out)
+        if create_if_not_exists:
+            out = exe.command('git checkout -b ' + branch)
+            log.info('created %s in %s' % (branch, project_name))
+            print(out)
+        else:
+            log.exit("Branch does not exist: %s", branch)
 
 
 def status():

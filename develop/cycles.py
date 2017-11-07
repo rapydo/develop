@@ -23,6 +23,11 @@ def tools(ctx, func, params=None, tools=None, connect=True, init=False):
     version = config.parameter(ctx, param_name='current-release')
     log.info("*** current version: %s ***", version)
 
+    tools_version_path = path.join(tools_current_path, version)
+    check = path.existing(tools_version_path, exit=not init)
+    if not check:
+        path.create(tools_version_path, directory=True)
+
     if params is None:
         params = {}
 
@@ -43,11 +48,20 @@ def tools(ctx, func, params=None, tools=None, connect=True, init=False):
             continue
 
         log.info('\t|| TOOL:\t%s' % toolname)
-        toolpath = path.join(tools_current_path, version, toolname)
+        toolpath = path.join(tools_version_path, toolname)
         log.verbose("Path: %s", toolpath)
 
         # give error if path does not exist
-        path.existing(toolpath)
+        check = path.existing(toolpath, exit=not init)
+        if not check:
+            from utilities.configuration import read
+            from develop import git
+            defaults = read()
+            repos = defaults.get('variables', {}).get('repos', {})
+            with path.cd(tools_version_path):
+                git.clone(url=repos.get(toolname, {}).get('online_url', None))
+            with path.cd(toolpath):
+                git.checkout(version, toolname, create_if_not_exists=False)
 
         with path.cd(toolpath):
             try:
