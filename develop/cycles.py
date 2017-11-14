@@ -16,7 +16,7 @@ def tools(ctx, func, params=None, tools=None, connect=True, init=False):
 
     # Components path
     tools_current_path = config.components_path(ctx)
-    check = path.existing(tools_current_path, exit=not init)
+    check = path.existing(tools_current_path, do_exit=not init)
     if not check:
         path.create(tools_current_path, directory=True)
 
@@ -28,7 +28,7 @@ def tools(ctx, func, params=None, tools=None, connect=True, init=False):
     log.info("*** current version: %s ***", version)
 
     tools_version_path = path.join(tools_current_path, version)
-    check = path.existing(tools_version_path, exit=not init)
+    check = path.existing(tools_version_path, do_exit=not init)
     if not check:
         path.create(tools_version_path, directory=True)
 
@@ -56,7 +56,7 @@ def tools(ctx, func, params=None, tools=None, connect=True, init=False):
         log.verbose("Path: %s", toolpath)
 
         # give error if path does not exist
-        check = path.existing(toolpath, exit=not init)
+        check = path.existing(toolpath, do_exit=not init)
         if not check:
             from utilities.configuration import read
             from develop import git
@@ -87,7 +87,7 @@ def projects(ctx, func, params=None, projects=None, connect=True, init=False):
         checks.not_connected()
 
     current_path = config.projects_path(ctx)
-    check = path.existing(current_path, exit=not init)
+    check = path.existing(current_path, do_exit=not init)
     if not check:
         path.create(current_path, directory=True)
 
@@ -110,14 +110,14 @@ def projects(ctx, func, params=None, projects=None, connect=True, init=False):
 
         prj_version = prj_conf.get('branch')
         prj_main_path = path.join(current_path, prj_name)
-        check = path.existing(prj_main_path, exit=not init)
+        check = path.existing(prj_main_path, do_exit=not init)
         if not check:
             path.create(prj_main_path, directory=True)
 
         prj_version_path = path.join(prj_main_path, prj_version)
 
         # GIT CLONE
-        check = path.existing(prj_version_path, exit=not init)
+        check = path.existing(prj_version_path, do_exit=not init)
         if not check:
             from develop import git
             with path.cd(prj_main_path):
