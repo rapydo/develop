@@ -33,7 +33,7 @@ def status(ctx, tools=None, commit=False, message=None):
                 exe.command('git commit -m "%s"' % message)
                 log.warning("Commit of missing data")
             else:
-                log.warning("You changes to be committed in %s", toolname)
+                log.warning("You have changes to be committed in %s", toolname)
                 print(git.status())
         else:
             log.verbose(git.NO_COMMIT.capitalize())
