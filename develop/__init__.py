@@ -5,6 +5,7 @@ __version__ = '0.6.0'
 # ORDER: confs > utilities > core > controller > develop > builds > http-api
 
 TOOLS = [
+    "tests",
     "rapydo-confs",
     "utils",
     "http-api",
