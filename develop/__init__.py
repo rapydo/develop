@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '0.5.7'
+__version__ = '0.6.0'
 
-# ORDER: utilities > core > controller > develop > builds > http-api
+# ORDER: confs > utilities > core > controller > develop > builds > http-api
+
 TOOLS = [
-    'utilities',
-    # 'core',
-    'controller',
-    'develop',
-    'builds',
-    'http',
+    "rapydo-confs",
+    "utils",
+    "http-api",
+    "build-templates",
+    "do",
+    "develop",
 ]
+
+# frontend:
+#   online_url: https://github.com/rapydo/angularjs-on-flask.git
+#   online_url: https://github.com/rapydo/node-ui.git

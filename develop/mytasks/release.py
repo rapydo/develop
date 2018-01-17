@@ -295,7 +295,7 @@ def link_components(project_name, project_path, version, components_path):
         .get('variables').get('repos')
 
     submodulespath = path.join(project_path, 'submodules')
-    from utilities import TOOLS as components
+    from develop import TOOLS as components
 
     with path.cd(submodulespath):
         for toolname in libs.keys():
@@ -340,12 +340,15 @@ def version(ctx, projects=None, push=False, message=None):
         # NOTE: most likely we start a new branch after a merged PR
         # of the latest version
 
-        # go to master and update
-        git.checkout(git.MAIN, toolname)
-        git.pull(git.MAIN)
-        log.debug('Obtained latest master')
-        # now switch to the specified branch/version from master
-        git.checkout(version, toolname)
+        current_version = git.current_branch()
+        # Do not change branch if currently in the same version
+        if current_version != version:
+            # go to master and update
+            git.checkout(git.MAIN, toolname)
+            git.pull(git.MAIN)
+            log.debug('Obtained latest master')
+            # now switch to the specified branch/version from master
+            git.checkout(version, toolname)
 
         ###############
         # Look for the branch version in __init__.py files
