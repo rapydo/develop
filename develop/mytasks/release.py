@@ -222,7 +222,7 @@ def find_package_name(toolpath, branch, rxps):
         if current_version == branch:
             log.checked("Package up to date")
         else:
-            log.warning("Package NOT up to date: %s", current_version)
+            log.warning("Package NOT up to date: using %s", current_version)
 
         if infos.get('location') == str(toolpath):
             log.checked("Package installed in development mode")
@@ -288,11 +288,31 @@ def change_project_configuration(projpath, branch, rxps):
 def link_components(project_name, project_path, version, components_path):
     """ Handling submodules links in projects """
 
+    # defaults
     from utilities import configuration
+
     is_template = project_name == BASE_PROJECT
-    libs = configuration \
-        .read(project_name, is_template) \
-        .get('variables').get('repos')
+
+    #####################
+    # FIXME: temporary workaround
+    SUBMODULES_DIR = 'submodules'  # NOTE: in common with do
+    RAPYDO_CONFS = 'rapydo-confs'  # NOTE: in common with do
+    import os
+    default_file_path = os.path.join(
+        project_path, SUBMODULES_DIR, RAPYDO_CONFS)
+    project_file_path = os.path.join(
+        project_path, 'projects', project_name)
+    tmp = configuration.read(
+        default_file_path,
+        project_path=project_file_path,
+        is_template=is_template
+    )
+    # log.pp(tmp.get('variables').get('repos'))
+    libs = tmp.get('variables').get('repos')
+
+    # libs = configuration \
+    #     .read(project_name, is_template=is_template) \
+    #     .get('variables').get('repos')
 
     submodulespath = path.join(project_path, 'submodules')
     from develop import TOOLS as components
