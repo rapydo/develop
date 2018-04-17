@@ -1,6 +1,6 @@
 
-pytest
-pytest-cov
-coveralls
-twine
+pytest==3.5.0
+pytest-cov==2.5.1
+coveralls==1.3.0
+twine==1.11.0
 git+https://github.com/rapydo/utils.git@0.6.0
