@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 
-# ORDER: confs > utilities > core > controller > develop > builds > http-api
-
+# ORDER
 TOOLS = [
+    "tests",
     "rapydo-confs",
     "utils",
     "http-api",
