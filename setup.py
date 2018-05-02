@@ -19,7 +19,7 @@ setup(
     ],
     install_requires=[
         'rapydo-utils==%s' % current_version,
-        'invoke==0.21.0'
+        'invoke==0.23.0'
     ],
     entry_points={
         'console_scripts': [
