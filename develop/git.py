@@ -109,10 +109,10 @@ def tag(tag_name, branch, message=None, push_decision=False):
 
     if tag_name in tags():
         log.debug('Tag %s already exists' % tag_name)
-        if push_decision:
-            com = "git push origin --follow-tags refs/tags/%s" % tag_name
-            exe.command(com)
-            log.warning("Pushed tag: %s" % tag_name)
+        # if push_decision:
+        #     com = "git push origin --follow-tags refs/tags/%s" % tag_name
+        #     exe.command(com)
+        #     log.warning("Pushed tag: %s" % tag_name)
     else:
         # create tag
         exe.command("git tag -a %s -m '%s'" % (tag_name, message))
