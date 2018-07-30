@@ -1,8 +1,5 @@
 language: python
-python:
-- 3.4
-- 3.5
-- 3.6.2
+
 before_install:
 - pip install --upgrade setuptools # bug fix http://j.mp/2v9Hs98
 - pip install --upgrade -r dev-requirements.txt
@@ -13,10 +10,21 @@ script:
 - py.test --cov=develop
 after_success:
 - coveralls
-deploy:
-  provider: pypi
-  user: pdonorio
-  password:
-    secure: JYyxXywUmwr7pIc2yujoW1geMhUjq73ewmEb3ZNnHgQxxMfUuBUZYMaARSDh+Bs36vSsnEsHU6UXlwIgfcKl9sISBeYWem3bj2yS0pIvL82+VCH/X3Y63/VbPjcEOLICrjpFvjSnsdQzHVjuTUuIMspJ/zClVcqVNkmeSbs4oQj88C1jdctk+YhW/L/zAkn+nzHNro8EdH4JUXreXEPOGgaxHS2b3TBRLidwFlH/dmg32sBTjqSydDqMsG5rN+LzYLL1A4RgGt6/ARgU2eo7TGPA64kjHs93jC+nBe58hsOf4CFWSVANWGV7M6nFJu8UaC4nnl9KXlEOtB2t/PX3BUfkIYP4M9Twi2jaZgpUiEdyRRvnKLftkYqJQ5KN3Ie4FxxmyuCOdgGa2xds4CGkuk9iHxqFENLPiPP20WN15qfG6IHuU2i+Nas3X+wjlWkmRC3lrKTdyKMg37TA3l28x4LzBMqOsT4ZZX4fZIlCmBH8ZktQ7V2DZRGkcfhMxes5U2SvrXt9hZGLEUdmNx9f8jDa1O8JhZCUAg/kZrkZU16Boid/BicyoAMV5iPOHn0gocabEohA6EBC94qeqM+jT8cPIc0OFJ/dXl0MKYyOHsOczAxA24wMun6rRkWeNJQ1Snrz6fnOqNes5ly3dBhtkKZi0MFuYbllaNJbk1OtLp4=
-  on:
-    tags: true
+
+jobs:
+  include:
+    - stage: test
+      python: 3.4
+    - python: 3.5
+    - python: 3.6.2
+
+    - stage: deploy
+      python: 3.6.2
+      script: skip
+      deploy:
+        provider: pypi
+        user: pdonorio
+        password:
+          secure: JYyxXywUmwr7pIc2yujoW1geMhUjq73ewmEb3ZNnHgQxxMfUuBUZYMaARSDh+Bs36vSsnEsHU6UXlwIgfcKl9sISBeYWem3bj2yS0pIvL82+VCH/X3Y63/VbPjcEOLICrjpFvjSnsdQzHVjuTUuIMspJ/zClVcqVNkmeSbs4oQj88C1jdctk+YhW/L/zAkn+nzHNro8EdH4JUXreXEPOGgaxHS2b3TBRLidwFlH/dmg32sBTjqSydDqMsG5rN+LzYLL1A4RgGt6/ARgU2eo7TGPA64kjHs93jC+nBe58hsOf4CFWSVANWGV7M6nFJu8UaC4nnl9KXlEOtB2t/PX3BUfkIYP4M9Twi2jaZgpUiEdyRRvnKLftkYqJQ5KN3Ie4FxxmyuCOdgGa2xds4CGkuk9iHxqFENLPiPP20WN15qfG6IHuU2i+Nas3X+wjlWkmRC3lrKTdyKMg37TA3l28x4LzBMqOsT4ZZX4fZIlCmBH8ZktQ7V2DZRGkcfhMxes5U2SvrXt9hZGLEUdmNx9f8jDa1O8JhZCUAg/kZrkZU16Boid/BicyoAMV5iPOHn0gocabEohA6EBC94qeqM+jT8cPIc0OFJ/dXl0MKYyOHsOczAxA24wMun6rRkWeNJQ1Snrz6fnOqNes5ly3dBhtkKZi0MFuYbllaNJbk1OtLp4=
+        on:
+          tags: true
