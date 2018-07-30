@@ -107,13 +107,16 @@ def tag(tag_name, branch, message=None, push_decision=False):
     if not pattern.match(tag_name):
         log.exit("Tag accepted for releases are in the form of: vX.Y.Z")
 
+    log.critical(tags())
     if tag_name in tags():
         log.debug('Tag %s already exists' % tag_name)
     else:
         # create tag
-        exe.command("git tag -a %s -m '%s'" % (tag_name, message))
+        log.critical("git tag -a %s -m '%s'" % (tag_name, message))
+        # exe.command("git tag -a %s -m '%s'" % (tag_name, message))
         log.info("Tagged: %s" % tag_name)
         if push_decision:
+            log.critical("push??")
             com = "git push origin --follow-tags refs/tags/%s" % tag_name
             exe.command(com)
             log.warning("Pushed tag: %s" % tag_name)
